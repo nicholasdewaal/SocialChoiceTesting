@@ -7,10 +7,11 @@ from scipy.stats import zipf
 import matplotlib.pyplot as plt
 from ipdb import set_trace
 from itertools import combinations
+from functools import partial
 # from social_choice.profile import Profile, ballot_box, plurality
 import svvamp
 import irv_variants
-import pref_matrix
+from pref_matrix.pref_matrix import c_gen_pref_summaries
 import pandas as pd
 
 
@@ -54,9 +55,10 @@ def get_weights_from_counts(counts):
     return [[count/sum(cnt_row) for count in cnt_row] for cnt_row in counts]
 
 
-def gen_pref_summaries(pref_ballots):
+def gen_pref_summaries(pref_ballots): # DELETE ONCE CYTHON FUNC TESTED!
 
     '''
+    Warning: this function is slow. Use the cython implementation in pref_matrix
     n_pref_by_rank: # of voters who placed candidate (col idx) at rank (row idx)
     n_pref_i_over_j: # voters preferring candidate of row i to candidate of col j
     '''
@@ -70,7 +72,6 @@ def gen_pref_summaries(pref_ballots):
             for c_less_pref in pref_rank[jj+1:]:
                 n_pref_i_over_j[ranked_val][c_less_pref] += 1 #this line is
                 # half the cpu work
-
 
     # for pref_rank in pref_ballots: #same speed as above!
         # previous = set()
@@ -272,7 +273,6 @@ def simulate_DeWaal(weights, pair_by_pair_winner, num_sim_per_weight=1000,
 
     # The following is the average social happiness from the election results
     # in the simulation.
-    # set_trace()
     avg_happiness = sum(h[0] * h[1] for h in happiness_freqs)
 
     return freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness
@@ -359,11 +359,9 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
 
     '''
     pref_ballots = pop_object.preferences_rk.tolist()
-    # n_pref_by_rank, pref_i_to_j = gen_pref_summaries(pref_ballots)
-    # use cython function
     if not(n_pref_by_rank and pref_i_to_j):
         p = np.array(pop.preferences_rk, dtype=np.intc)
-        n_pref_by_rank, pref_i_to_j = pref_matrix.gen_pref_summaries(p)
+        n_pref_by_rank, pref_i_to_j = c_gen_pref_summaries(p)
     results = dict() # name each election type
     hare_obj = irv_variants.IRV_Variants(pref_ballots, num_i_to_j=pref_i_to_j)
     results['tideman_hare'] = hare_obj.tideman_hare()
@@ -402,7 +400,7 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
     return results
 
 
-def get_happinesses_by_method(population_iterator, fast=False):#=iter_rand_pop_polar):
+def get_happinesses_by_method(pop_iterator, fast=False):#=iter_rand_pop_polar):
 
     num_cpu = multiprocessing.cpu_count()
     lock = multiprocessing.lock()
@@ -415,26 +413,36 @@ def get_happinesses_by_method(population_iterator, fast=False):#=iter_rand_pop_p
     while current_sim < num_sim:
         for n_candidates in test_num_candidates: # simulate for various numbers of candidates
             n_voters = n_candidates * 750
-            with Pool(num_cpu) as p:
-                p.map(loop_below_as_func,
-                    population_iterator(n_voters, n_candidates))
+            with Pool(num_cpu) as p: # parallelize, put -1 to save a cpu?
+                nxt_sim = partial(next_sim_iter, lock=lock,
+                                   utils_by_scf=utils_by_scf)
+                p.map(nxt_sim, pop_iterator(n_voters, n_candidates))
 
-            for pop in population_iterator(n_voters, n_candidates):
-                p = np.array(pop.preferences_rk, dtype=np.intc)
-                n_pref_by_rank, pref_i_to_j = pref_matrix.gen_pref_summaries(p)
-                weights = get_weights_from_counts(n_pref_by_rank)
-                utils = social_util_by_cand(weights)
-                winners_by_scf, param = simulate_all_elections(pop, fast=fast,
-                    n_pref_by_rank=n_pref_by_rank, pref_i_to_j=pref_i_to_j)
-                with lock:
-                    utils_by_scf[current_sim][n_candidates][n_voters] = \
-                        {k:utils[v] for k,v in winners_by_scf.items()}
+            # for pop in pop_iterator(n_voters, n_candidates):
+                # p = np.array(pop.preferences_rk, dtype=np.intc)
+                # n_pref_by_rank, pref_i_to_j = c_gen_pref_summaries(p)
+                # weights = get_weights_from_counts(n_pref_by_rank)
+                # utils = social_util_by_cand(weights)
+                # winners_by_scf, param = simulate_all_elections(pop, fast=fast,
+                    # n_pref_by_rank=n_pref_by_rank, pref_i_to_j=pref_i_to_j)
 
                 params.append[param] #really? do one time maybe?
-        next_pnl = pd.Panel( items=utils_by_scf ,major_axis=params
+        next_pnl = pd.Panel(items=utils_by_scf ,major_axis=params
                             ,minor_axis=1 )
 
         current_sim += 1
+
+
+def next_sim_iter(lock, utils_by_scf, pop):
+    p = np.array(pop.preferences_rk, dtype=np.intc)
+    n_pref_by_rank, pref_i_to_j = c_gen_pref_summaries(p)
+    weights = get_weights_from_counts(n_pref_by_rank)
+    utils = social_util_by_cand(weights)
+    winners_by_scf, param = simulate_all_elections(pop, fast=fast,
+        n_pref_by_rank=n_pref_by_rank, pref_i_to_j=pref_i_to_j)
+    with lock:
+        utils_by_scf[current_sim][n_candidates][n_voters] = \
+            {k:utils[v] for k,v in winners_by_scf.items()}
 
 
 def iter_rand_pop_polar(n_voters, n_candidates, num_polarizations=15):
@@ -444,7 +452,6 @@ def iter_rand_pop_polar(n_voters, n_candidates, num_polarizations=15):
         pop = svvamp.PopulationVMFHypersphere(V=n_voters, C=n_candidates,
               vmf_concentration=polarization)
         yield pop, polarization
-
 
 
 def iter_rand_pop_other(n_voters, n_candidates, num_polarizations=15):
@@ -476,29 +483,20 @@ def iter_rand_pop_zipf(n_voters, n_candidates,
         yield pop, zipf_param
 
 
-'''
-n_preferred_by_rank, n_pref_matrix, pairwise_wins = gen_pref_summaries(votes)
-w = get_weights_from_counts(n_preferred_by_rank)
-plot_sim(w, pairwise_wins, test_point_cuttoffs=[.9,1,1.5,2,2.1,2.5,3,3.1,3.9],
-    choice_function=gen_until_2_winners_borda)
-'''
-
 if __name__ == "__main__":
 
-    pop = svvamp.PopulationVMFHypersphere(V=15000, C=15,
-              vmf_concentration=4)
-    simulate_all_elections(pop)
-    '''
-    w = gen_weights_zipf(20)
-    plot_sim(w, 6)
+    # Simulate DeWaal_borda and plot
+    votes = gen_ranked_preferences_zipf(n_candidates=10, n_voters=10000,
+                                        zipf_param=1.2)
 
-    w, pref_matrix, pairwise_wins = gen_ranked_weights_zipf(7, zipf_param=1.1)
+    n_preferred_by_rank, n_pref_matrix = c_gen_pref_summaries(votes)
+    pairwise_wins = get_pairwise_winners(pref_ij)
+    w = get_weights_from_counts(n_preferred_by_rank)
     all_happinesses = social_util_by_cand(w)
-    # simulate from two winners' choice, the pairwise winner, and happiness,
-    # then find average happiness to 100% as a function of zipf param/num
-    # candidates, cutoff votes, and happiness decay factor. Target ideal cutoff
-    # level to optimize.
     plot_sim(w, pairwise_wins, test_point_cuttoffs=[.9,1,1.5,2,2.1,2.5,3,3.1,3.9],
-             choice_function=gen_until_2_winners_borda)
-    '''
+        choice_function=gen_until_2_winners_borda)
 
+
+    # Simulate all elections once
+    pop = svvamp.PopulationVMFHypersphere(V=15000, C=15, vmf_concentration=4)
+    simulate_all_elections(pop)

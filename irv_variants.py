@@ -2,24 +2,12 @@ from collections import defaultdict
 from ipdb import set_trace
 import tarjan as tr
 import svvamp
+from pref_matrix import c_gen_pref_summaries
 
 
 # def copy_list_of_lists(in_list):  # much faster than deepcopy
     # out_list = [y.copy() for y in in_list]
     # return out_list
-
-
-def get_num_votes_i_over_j(pref_ballots): # duplicate code, remove eventually!!
-    '''
-    num_votes_i_over_j[i][j] = # of votes for candidate i over candidate j
-    '''
-    N = len(pref_ballots[0])
-    num_votes_i_over_j = N * [N * [0]]
-    for ballot in pref_ballots:
-        for kk, c_pref in enumerate(ballot):
-            for c_less_pref in ballot[kk+1:]:
-                num_votes_i_over_j[c_pref][c_less_pref] += 1
-    return num_votes_i_over_j
 
 
 class IRV_Variants():
@@ -30,7 +18,7 @@ class IRV_Variants():
         self._candidates = set(all_ballots[0])
         # _n_vote_i_to_j[i][j] = pct or # of votes for candidate i over j
         self._n_vote_i_to_j = num_i_to_j if num_i_to_j else \
-            get_num_votes_i_over_j(self._all_ballots)
+            pref_matrix.c_gen_pref_summaries(self._all_ballots)[1]
         self._primary_smith_set = self.get_smith_set(self._candidates)
         # self._pref_graph =
         # to do: get the preference graph once, then get the Smith

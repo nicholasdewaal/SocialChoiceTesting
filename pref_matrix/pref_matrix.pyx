@@ -1,4 +1,5 @@
 
+
 import numpy as np
 
 # input: p=np.array(pop.preferences_rk, dtype=np.intc)
@@ -17,4 +18,5 @@ def c_gen_pref_summaries(int[:, :] pref_ballots):
             for k in range(j+1, m):
                 n_pref_i_over_j[pref_ballots[i, j], pref_ballots[i, k]] += 1
 
-    return n_pref_by_rank, n_pref_i_over_j
+    return np.asarray(n_pref_by_rank), np.asarray(n_pref_i_over_j)
+    # return n_pref_by_rank, n_pref_i_over_j
