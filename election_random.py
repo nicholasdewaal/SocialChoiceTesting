@@ -1,4 +1,5 @@
 
+from addict import Dict
 from multiprocessing import Pool
 from numpy import cumsum, arange
 from random import uniform, shuffle
@@ -404,10 +405,10 @@ def get_happinesses_by_method(pop_iterator, fast=False):#=iter_rand_pop_polar):
 
     num_cpu = multiprocessing.cpu_count()
     lock = multiprocessing.lock()
-    num_sim, current_sim = 500, 0
-    params = list()
-    utils_by_scf = defaultdict(lambda:defaultdict(lambda:defaultdict(float)))
-    test_num_candidates = [3, 4, 5, 6, 7, 9, 11, 13, 16, 19, 22, 25]
+    num_sim, current_sim = 1500, 0
+    utils_by_scf = Dict()
+    dataframe_dict = Dict()
+    test_num_candidates = [3, 4, 6, 9, 13, 18, 24]
 
     # modify each sim to run in parallel
     while current_sim < num_sim:
@@ -415,9 +416,9 @@ def get_happinesses_by_method(pop_iterator, fast=False):#=iter_rand_pop_polar):
             n_voters = n_candidates * 750
             with Pool(num_cpu) as p: # parallelize, put -1 to save a cpu?
                 nxt_sim = partial(next_sim_iter, lock=lock,
-                                   utils_by_scf=utils_by_scf)
+                    utils_by_scf=utils_by_scf, n_candidates=n_candidates,
+                    current_sim=current_sim)
                 p.map(nxt_sim, pop_iterator(n_voters, n_candidates))
-
             # for pop in pop_iterator(n_voters, n_candidates):
                 # p = np.array(pop.preferences_rk, dtype=np.intc)
                 # n_pref_by_rank, pref_i_to_j = c_gen_pref_summaries(p)
@@ -425,42 +426,46 @@ def get_happinesses_by_method(pop_iterator, fast=False):#=iter_rand_pop_polar):
                 # utils = social_util_by_cand(weights)
                 # winners_by_scf, param = simulate_all_elections(pop, fast=fast,
                     # n_pref_by_rank=n_pref_by_rank, pref_i_to_j=pref_i_to_j)
-
-                params.append[param] #really? do one time maybe?
-        next_pnl = pd.Panel(items=utils_by_scf ,major_axis=params
-                            ,minor_axis=1 )
-
         current_sim += 1
 
+    # now make dict of DataFrames by paramaters, n_candidates
+    for param, v_upper in utils_by_scf:
+        for k, v_lower in v_upper:
+            dataframe_dict[param][k] = pd.DataFrame.from_dict(v)
+            dataframe_dict[param][k].boxplot() # labels? by axis?
+            plt.savefig("plot_p=" + str(param) + "_n_cand=" + str(k) + ".png")
+            # plot means by n_candidates, param
 
-def next_sim_iter(lock, utils_by_scf, pop):
+
+def next_sim_iter(pop, param, lock, utils_by_scf, n_candidates, current_sim):
     p = np.array(pop.preferences_rk, dtype=np.intc)
     n_pref_by_rank, pref_i_to_j = c_gen_pref_summaries(p)
     weights = get_weights_from_counts(n_pref_by_rank)
     utils = social_util_by_cand(weights)
-    winners_by_scf, param = simulate_all_elections(pop, fast=fast,
+    winners_by_scf = simulate_all_elections(pop, fast=fast,
         n_pref_by_rank=n_pref_by_rank, pref_i_to_j=pref_i_to_j)
     with lock:
-        utils_by_scf[current_sim][n_candidates][n_voters] = \
-            {k:utils[v] for k,v in winners_by_scf.items()}
+        utils_by_scf[param][n_candidates][current_sim] = \
+            {k : utils[v] for k,v in winners_by_scf.items()}
 
 
-def iter_rand_pop_polar(n_voters, n_candidates, num_polarizations=15):
+def iter_rand_pop_polar(n_voters, n_candidates, num_polarizations=5):
 
-    for polarization in range(num_polarizations):
+    polarization_list = [3 * ii for ii in range(num_polarizations)]
+    for polarization in polarization_list:
         # using the Von-Mises Fisher model, which represents a polarized culture:
         pop = svvamp.PopulationVMFHypersphere(V=n_voters, C=n_candidates,
               vmf_concentration=polarization)
         yield pop, polarization
 
 
-def iter_rand_pop_other(n_voters, n_candidates, num_polarizations=15):
+def iter_rand_pop_other(n_voters, n_candidates, num_polarizations=5):
     # do other data gen methods
     pop = svvamp.PopulationSpheroid(V=num_voters, C=n_candidates)
     yield pop
 
 
-def iter_rand_pop_ladder(n_voters, n_candidates, num_polarizations=15,
+def iter_rand_pop_ladder(n_voters, n_candidates, num_polarizations=5,
     ladder_rng=10):
 
     for n in range(ladder_rng): # Neutral cultures
@@ -468,7 +473,7 @@ def iter_rand_pop_ladder(n_voters, n_candidates, num_polarizations=15,
         yield pop, ladder_rng
 
 
-def iter_rand_pop_gauss(n_voters, n_candidates, num_polarizations=15):
+def iter_rand_pop_gauss(n_voters, n_candidates, num_polarizations=5):
     #politcal spectrum:
     pop = svvamp.PopulationGaussianWell(V=num_voters, C=n_candidates,
         sigma=[1], shift=[0])
