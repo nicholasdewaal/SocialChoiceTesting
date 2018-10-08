@@ -1,5 +1,5 @@
 # SocialChoiceTesting
-Sampling the Social Utility for a variety of Prominent Social Choice Functions along with some of my new ideas for social choice functions.
+This software samples the social utility for a variety of prominent social-choice functions along with some of my new ideas for social choice functions.
 
 
-This is a work in progress, a better readme will be provided at a later time.
+This is a work in progress, a better ReadMe will be provided at a later time.
