@@ -163,7 +163,7 @@ def gen_until_2_winners_borda(ranked_weights, points_to_win=2.3,
     # receive decay_rate ** 1 points.
     #  ....
     # The k-th ballot randomly chosen has that voter's k-th choice candidate
-    # voter's kth choice candidate receive decay_rate ** (k - 1) points.
+    # receive decay_rate ** (k - 1) points.
 
     # After the number of ballots is sampled reaches the number of
     # ranks/candidates, the process is repeated until 2 primary winners emerge.
@@ -175,7 +175,8 @@ def gen_until_2_winners_borda(ranked_weights, points_to_win=2.3,
 
         # Select winners randomly with probability proportional to their
         # number of votes ranked at level i preference, awarding
-        # points to that candidate according the variation on Borda count.
+        # points to that candidate according to the variation on Borda count
+        # described above.
 
         # Candidates are indexed from 0 to the number of candidates-1 =
         # len(ranked_weights)-1
