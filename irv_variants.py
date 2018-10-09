@@ -2,7 +2,7 @@ from collections import defaultdict
 from ipdb import set_trace
 import tarjan as tr
 import svvamp
-from pref_matrix import c_gen_pref_summaries
+from pref_matrix.pref_matrix import c_gen_pref_summaries
 
 
 # def copy_list_of_lists(in_list):  # much faster than deepcopy

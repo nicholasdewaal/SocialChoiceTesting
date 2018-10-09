@@ -7,9 +7,7 @@ from collections import defaultdict
 from scipy.stats import zipf
 import matplotlib.pyplot as plt
 from ipdb import set_trace
-from itertools import combinations
 from functools import partial
-# from social_choice.profile import Profile, ballot_box, plurality
 import svvamp
 import irv_variants
 from pref_matrix.pref_matrix import c_gen_pref_summaries
@@ -29,31 +27,42 @@ def gen_weights_zipf(n_weights, zipf_param=1.13):
     return out_weights
 
 
-def gen_ranked_preferences_zipf(n_candidates, n_samples, zipf_param=1.1):
+def gen_ranked_preferences_zipf(n_candidates, n_voters, zipf_param=1.1):
     '''
     Generate ranked choice candidate preference frequencies among voters
     assuming that preference rankings are zipf distributed.
-    n_samples might need to be about 500 * n_candidates
+    n_voters might need to be about 500 * n_candidates
     '''
     candidates = list(range(n_candidates))
     pref_ballot_samples = list()
 
     rv = zipf(zipf_param)
     # zipf of index 0 doesn't exist, thus add 1: ii+1
-    scaler = sum(rv.pmf(ii+1) for ii in range(n_samples))
-    n_prefs = [round(n_candidates*rv.pmf(i+1)/scaler) for i in range(n_samples)]
+    scaler = sum(rv.pmf(ii+1) for ii in range(n_voters))
+    n_prefs = [n_voters*rv.pmf(i+1)/scaler for i in range(n_voters)]
 
-    # Generate random preference ordering
+    # Generate random preference ordering according to zipf distributed samples
+    offset = 0
     for n in n_prefs:
+        m = int(round(n + offset))
+        offset = n - m + offset
         tmp_candidates = candidates.copy()
         shuffle(tmp_candidates)
-        pref_ballot_samples.extend([tuple(tmp_candidates)]*n)
+        pref_ballot_samples.extend([tuple(tmp_candidates)]*m)
 
     return pref_ballot_samples
 
 
 def get_weights_from_counts(counts):
     return [[count/sum(cnt_row) for count in cnt_row] for cnt_row in counts]
+
+
+def assert_weights_sound(weights):
+    # ranked_weights must be balanced sum to 100% along rows and columns
+    for row in weights:
+        assert abs(sum(row) - 1) < .0001
+    for column in zip(*weights):
+        assert abs(sum(column) - 1) < .0001
 
 
 def gen_pref_summaries(pref_ballots): # DELETE ONCE CYTHON FUNC TESTED!
@@ -64,8 +73,8 @@ def gen_pref_summaries(pref_ballots): # DELETE ONCE CYTHON FUNC TESTED!
     n_pref_i_over_j: # voters preferring candidate of row i to candidate of col j
     '''
     N = len(pref_ballots[0])
-    n_pref_i_over_j = N * [N * [0]]
-    n_pref_by_rank =  N * [N * [0]]
+    n_pref_i_over_j = [N * [0] for _ in range(N)]
+    n_pref_by_rank = [N * [0] for _ in range(N)]
 
     for pref_rank in pref_ballots:
         for jj, ranked_val in enumerate(pref_rank):
@@ -84,23 +93,6 @@ def gen_pref_summaries(pref_ballots): # DELETE ONCE CYTHON FUNC TESTED!
     return n_pref_by_rank, n_pref_i_over_j
 
 
-def get_pairwise_winners(n_pref_i_over_j):
-    '''
-    pair_by_pair_winners: dict of pairs of candidates, and which would win
-    among the voters in a pair-off given existing pref_ballots.
-    '''
-    pair_by_pair_winners = dict()
-    candidates = range(len(n_pref_i_over_j))
-    for c in combinations(candidates, 2):
-        srt_combo = tuple(sorted(list(c)))
-        if n_pref_i_over_j[c[0]][c[1]] >= n_pref_i_over_j[c[1]][c[0]]:
-            pair_by_pair_winners[srt_combo] = c[0]
-        else:
-            pair_by_pair_winners[srt_combo] = c[1]
-
-    return pair_by_pair_winners
-
-
 def scale_utilities(in_utilities):
     scaled_util = [(x-min(x))/(max(x)-min(x)) for x in in_utilities]
     # scaled to get a percent total satisfaction of a population.
@@ -112,6 +104,7 @@ def social_util_by_cand(ranked_weights, fraction_happy_decay=.5):
     Assume a multiplicative fractional utility decay for a voter
     by each drop in their preference ranking
     '''
+    assert_weights_sound(ranked_weights)
     assert fraction_happy_decay < 1 and fraction_happy_decay > 0
 
     # we want the middle preferred candidate to be fraction_happy_decay
@@ -146,10 +139,14 @@ def gen_until_2_winners_borda(ranked_weights, points_to_win=2.3,
     Return value: the set of two primary election winners from index
     1..num_candidates.
     '''
-    #!!! TO DO: assert ranked_weights is balanced sum to 100% along rows.!!!
-    assert borda_decay < 1 and borda_decay > 0
 
-    decay_rate = borda_decay ** (2 / (len(ranked_weights) - 1))
+    assert borda_decay < 1 and borda_decay > 0
+    if len(ranked_weights) > 1:
+        assert_weights_sound(ranked_weights)
+        decay_rate = borda_decay ** (2 / (len(ranked_weights) - 1))
+    else: # In order to allow for re-using this code for DeWaal_plurality
+        decay_rate = 1
+        set_trace()
     ranges = [list(cumsum(weights)[0:-1]) for weights in ranked_weights]
     won_points = defaultdict(int)
     winning_set = set()
@@ -163,10 +160,13 @@ def gen_until_2_winners_borda(ranked_weights, points_to_win=2.3,
     # The 1st ballot randomly chosen has that voter's 1st choice candidate
     # receive 1 point.
     # The 2st ballot randomly chosen has that voter's 2st choice candidate
-    # receive 1 / 2 point.
+    # receive decay_rate ** 1 points.
     #  ....
-    # When k = number of candidates, the kth ballot randomly chosen has that
-    # voter's kth choice candidate receive 1 / 2 ** k points.
+    # The k-th ballot randomly chosen has that voter's k-th choice candidate
+    # voter's kth choice candidate receive decay_rate ** (k - 1) points.
+
+    # After the number of ballots is sampled reaches the number of
+    # ranks/candidates, the process is repeated until 2 primary winners emerge.
 
     # The first 2 candidates to pass the threshold of points_to_win, win the
     # primary to pass on to the final election.
@@ -175,7 +175,7 @@ def gen_until_2_winners_borda(ranked_weights, points_to_win=2.3,
 
         # Select winners randomly with probability proportional to their
         # number of votes ranked at level i preference, awarding
-        # 1/2 ** i points to that candidate according to Borda count.
+        # points to that candidate according the variation on Borda count.
 
         # Candidates are indexed from 0 to the number of candidates-1 =
         # len(ranked_weights)-1
@@ -197,12 +197,15 @@ def gen_until_2_winners_plurality(weights, points_to_win=2):
     '''
     Plurality voting special case. weights are first choice only; not ranked.
     '''
-    return gen_until_2_winners_borda([weights], points_to_win)
+   return gen_until_2_winners_borda([weights], points_to_win)
 
 
-def get_pairoff_winner(two_candidates, pair_by_pair_winner):
+def get_pairoff_winner(two_candidates, pref_ij):
     primary_winners = list(two_candidates)
-    return pair_by_pair_winner[tuple(sorted(primary_winners))]
+    if pref_ij[primary_winners[0]][primary_winners[1]] > \
+            pref_ij[primary_winners[1]][primary_winners[0]]:
+        return primary_winners[0]
+    return primary_winners[1]
 
 
 def DeWaal_borda(pref_ballots, points_to_win=2.3, borda_decay=.5,
@@ -212,10 +215,9 @@ def DeWaal_borda(pref_ballots, points_to_win=2.3, borda_decay=.5,
     '''
     if not(pref_ij and n_pref_by_rank):
         n_pref_by_rank, pref_ij = gen_pref_summaries(pref_ballots)
-    pairwise_wins = get_pairwise_winners(pref_ij)
     weights = get_weights_from_counts(n_pref_by_rank)
     win2_set = gen_until_2_winners_borda(weights, points_to_win, borda_decay)
-    return win2_set, get_pairoff_winner(win2_set, pairwise_wins)
+    return win2_set, get_pairoff_winner(win2_set, pref_ij)
 
 
 def DeWaal_plurality(pref_ballots, points_to_win=2,
@@ -225,16 +227,17 @@ def DeWaal_plurality(pref_ballots, points_to_win=2,
     '''
     if not(pref_ij and n_pref_by_rank):
         n_pref_by_rank, pref_ij = gen_pref_summaries(pref_ballots)
-    pairwise_wins = get_pairwise_winners(pref_ij)
     weights = get_weights_from_counts(n_pref_by_rank)[0]
     win2_set = gen_until_2_winners_plurality(weights, points_to_win)
-    return win2_set, get_pairoff_winner(win2_set, pairwise_wins)
+    return win2_set, get_pairoff_winner(win2_set, pref_ij)
 
 
-def simulate_DeWaal(weights, pair_by_pair_winner, num_sim_per_weight=1000,
+def simulate_DeWaal(weights, pref_ij, num_sim_per_weight=1000,
                     n_pts_win=2, choice_func=DeWaal_borda):
 
-    if choice_function == DeWaal_borda:
+    assert_weights_sound(ranked_weights)
+
+    if choice_func == DeWaal_borda:
         assert len(weights) == len(weights[0])
 
     # More simulations per weight are helpful for more candidate weights
@@ -279,9 +282,10 @@ def simulate_DeWaal(weights, pair_by_pair_winner, num_sim_per_weight=1000,
     return freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness
 
 
-def plot_sim(weights, pair_by_pair_winner, test_point_cuttoffs=[1,2,3],
+def plot_sim(weights, pref_ij, test_point_cuttoffs=[1,2,3],
              choice_function=DeWaal_borda):
 
+    assert_weights_sound(ranked_weights)
     n_groups = len(weights)
 
     fig, ax = plt.subplots()
@@ -296,7 +300,7 @@ def plot_sim(weights, pair_by_pair_winner, test_point_cuttoffs=[1,2,3],
     for j, pts in enumerate(test_point_cuttoffs):
 
         freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness = \
-            simulate_DeWaal(weights, pair_by_pair_winner, num_sim_per_weight,
+            simulate_DeWaal(weights, pref_ij, num_sim_per_weight,
                                n_pts_win=pts, choice_function=choice_function)
         print("avg_happiness: ", avg_happiness)
         # print("happiness_distr: ", happiness_freqs)
@@ -326,19 +330,22 @@ def plot_sim(weights, pair_by_pair_winner, test_point_cuttoffs=[1,2,3],
 def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
                            n_pref_by_rank=None):
     '''
-    fast = True eliminates time consuming SCF's from testing
+    fast = True: This eliminates time consuming SCF's from testing which
+    includes range voting and Baldwin. Tactical voting for range voting is
+    essentially approval voting which is simulated, and Nanson is extremely
+    similar to Baldwin.
 
-    borda-irv: Baldwin, Nanson
+    Borda-IRV: Baldwin, Nanson
 
     Borda: classic
     Condorcet: classic
-    Simpson: choose the candidate whose worst pairwise defeat is better than
     that of all other candidates
 
     Plurality/FPTP
 
     Implement Later: Dowdall, Symmetric borda, combine Baldwin
     (borda-irv) with Condorcet smith? Copeland
+    Simpson: choose the candidate whose worst pairwise defeat is better than
     Raynaud (remove biggest Condorcet loser # iteratively)
 
     Multi-optimization objectives for choosing a social-choice function
@@ -371,8 +378,6 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
     results['benham_hare'] = svvamp.ICRV(pop_object).w
     results['hare'] = svvamp.IRV(pop_object).w
 
-    # profile = Profile.ballot_box(pref_ballots)
-    results['simpson'] = profile.ranking(profile.simpson) #minimax
     results['schulze'] = svvamp.Schulze(pop_object).w
     results['borda'] =  svvamp.Borda(pop_object).w
     results['nanson'] =  svvamp.Nanson(pop_object).w # borda-irv below avg
@@ -494,11 +499,10 @@ if __name__ == "__main__":
     votes = gen_ranked_preferences_zipf(n_candidates=10, n_voters=10000,
                                         zipf_param=1.2)
 
-    n_preferred_by_rank, n_pref_matrix = c_gen_pref_summaries(votes)
-    pairwise_wins = get_pairwise_winners(pref_ij)
+    n_preferred_by_rank, pref_ij = c_gen_pref_summaries(votes)
     w = get_weights_from_counts(n_preferred_by_rank)
     all_happinesses = social_util_by_cand(w)
-    plot_sim(w, pairwise_wins, test_point_cuttoffs=[.9,1,1.5,2,2.1,2.5,3,3.1,3.9],
+    plot_sim(w, pref_ij, test_point_cuttoffs=[.9,1,1.5,2,2.1,2.5,3,3.1,3.9],
         choice_function=gen_until_2_winners_borda)
 
 
