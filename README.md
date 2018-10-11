@@ -7,4 +7,5 @@
 
   Work left to do includes creating tests, finishing simulations, and documentation.
   
+  This code runs with Python 3 only.  It is not compatible with Python 2.*
   The license for using this software is GPL v3 as written in the included file License.txt.
