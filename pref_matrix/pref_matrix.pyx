@@ -1,14 +1,16 @@
 
 
-import numpy as np
+from numpy import zeros, intc, asarray
 
-# input: p=np.array(pop.preferences_rk, dtype=np.intc)
 
 def c_gen_pref_summaries(int[:, :] pref_ballots):
+    '''
+    input: pref_ballots = array(pop.preferences_rk, dtype=intc)
+    '''
     cdef int n_voters = pref_ballots.shape[0]
     cdef int n_cand = pref_ballots.shape[1]
-    cdef int[:, :] n_pref_i_over_j = np.zeros((n_cand, n_cand), dtype=np.intc)
-    cdef int[:, :] n_pref_by_rank = np.zeros((n_cand, n_cand), dtype=np.intc)
+    cdef int[:, :] n_pref_i_over_j = zeros((n_cand, n_cand), dtype=intc)
+    cdef int[:, :] n_pref_by_rank = zeros((n_cand, n_cand), dtype=intc)
 
     cdef int i, j, k, d
 
@@ -18,4 +20,4 @@ def c_gen_pref_summaries(int[:, :] pref_ballots):
             for k in range(j + 1, n_cand):
                 n_pref_i_over_j[pref_ballots[i, j], pref_ballots[i, k]] += 1
 
-    return np.asarray(n_pref_by_rank), np.asarray(n_pref_i_over_j)
+    return asarray(n_pref_by_rank), asarray(n_pref_i_over_j)

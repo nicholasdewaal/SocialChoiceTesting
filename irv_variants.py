@@ -1,13 +1,11 @@
 from collections import defaultdict
 from ipdb import set_trace
 import tarjan as tr
-import svvamp
 from pref_matrix.pref_matrix import c_gen_pref_summaries
 
 
-# def copy_list_of_lists(in_list):  # much faster than deepcopy
-    # out_list = [y.copy() for y in in_list]
-    # return out_list
+# def copy_list_of_lists(in_list):  # much faster than deepcopy, not used now
+    # return [y.copy() for y in in_list]
 
 
 class IRV_Variants():
@@ -20,9 +18,6 @@ class IRV_Variants():
         self._n_vote_i_to_j = num_i_to_j if not(num_i_to_j is None) else \
             pref_matrix.c_gen_pref_summaries(self._all_ballots)[1]
         self._primary_smith_set = self.get_smith_set(self._candidates)
-        # self._pref_graph =
-        # to do: get the preference graph once, then get the Smith
-        # set for a given subset fewer times.
 
 
     def get_smith_set(self, candidates_to_check):

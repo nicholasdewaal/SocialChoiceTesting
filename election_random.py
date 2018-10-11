@@ -1,7 +1,7 @@
 
 from addict import Dict
 from multiprocessing import Pool, cpu_count, Lock
-from numpy import cumsum, arange
+from numpy import cumsum, arange, array, intc
 from random import uniform, shuffle
 from collections import defaultdict
 from scipy.stats import zipf
@@ -11,7 +11,7 @@ from functools import partial
 import svvamp
 import irv_variants
 from pref_matrix.pref_matrix import c_gen_pref_summaries
-import pandas as pd
+from pandas import DataFrame
 
 
 def gen_weights_zipf(n_weights, zipf_param=1.13):
@@ -364,7 +364,7 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
     set_trace()
     pref_ballots = pop_object.preferences_rk.tolist()
     if not(n_pref_by_rank and pref_i_to_j):
-        p = np.array(pop.preferences_rk, dtype=np.intc)
+        p = array(pop.preferences_rk, dtype=intc)
         n_pref_by_rank, pref_i_to_j = c_gen_pref_summaries(p)
     results = dict() # name each election type
     hare_obj = irv_variants.IRV_Variants(pref_ballots, num_i_to_j=pref_i_to_j)
@@ -423,7 +423,7 @@ def get_happinesses_by_method(pop_iterator, fast=False):#=iter_rand_pop_polar):
                     current_sim=current_sim)
                 p.map(nxt_sim, pop_iterator(n_voters, n_candidates))
             # for pop in pop_iterator(n_voters, n_candidates):
-                # p = np.array(pop.preferences_rk, dtype=np.intc)
+                # p = array(pop.preferences_rk, dtype=intc)
                 # n_pref_by_rank, pref_i_to_j = c_gen_pref_summaries(p)
                 # weights = get_weights_from_counts(n_pref_by_rank)
                 # utils = social_util_by_cand(weights)
@@ -434,14 +434,14 @@ def get_happinesses_by_method(pop_iterator, fast=False):#=iter_rand_pop_polar):
     # now make dict of DataFrames by paramaters, n_candidates
     for param, v_upper in utils_by_scf:
         for k, v_lower in v_upper:
-            dataframe_dict[param][k] = pd.DataFrame.from_dict(v)
+            dataframe_dict[param][k] = DataFrame.from_dict(v)
             dataframe_dict[param][k].boxplot() # labels? by axis?
             plt.savefig("plot_p=" + str(param) + "_n_cand=" + str(k) + ".png")
             # plot means by n_candidates, param
 
 
 def next_sim_iter(pop, param, lock, utils_by_scf, n_candidates, current_sim):
-    p = np.array(pop.preferences_rk, dtype=np.intc)
+    p = array(pop.preferences_rk, dtype=intc)
     n_pref_by_rank, pref_i_to_j = c_gen_pref_summaries(p)
     weights = get_weights_from_counts(n_pref_by_rank)
     utils = social_util_by_cand(weights)
