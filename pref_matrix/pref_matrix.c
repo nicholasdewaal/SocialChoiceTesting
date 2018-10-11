@@ -1581,8 +1581,6 @@ static const char __pyx_k_d[] = "d";
 static const char __pyx_k_i[] = "i";
 static const char __pyx_k_j[] = "j";
 static const char __pyx_k_k[] = "k";
-static const char __pyx_k_m[] = "m";
-static const char __pyx_k_n[] = "n";
 static const char __pyx_k_id[] = "id";
 static const char __pyx_k_np[] = "np";
 static const char __pyx_k_new[] = "__new__";
@@ -1612,6 +1610,7 @@ static const char __pyx_k_zeros[] = "zeros";
 static const char __pyx_k_encode[] = "encode";
 static const char __pyx_k_format[] = "format";
 static const char __pyx_k_import[] = "__import__";
+static const char __pyx_k_n_cand[] = "n_cand";
 static const char __pyx_k_name_2[] = "__name__";
 static const char __pyx_k_pickle[] = "pickle";
 static const char __pyx_k_reduce[] = "__reduce__";
@@ -1624,6 +1623,7 @@ static const char __pyx_k_memview[] = "memview";
 static const char __pyx_k_Ellipsis[] = "Ellipsis";
 static const char __pyx_k_getstate[] = "__getstate__";
 static const char __pyx_k_itemsize[] = "itemsize";
+static const char __pyx_k_n_voters[] = "n_voters";
 static const char __pyx_k_pyx_type[] = "__pyx_type";
 static const char __pyx_k_setstate[] = "__setstate__";
 static const char __pyx_k_TypeError[] = "TypeError";
@@ -1727,13 +1727,13 @@ static PyObject *__pyx_n_s_itemsize;
 static PyObject *__pyx_kp_s_itemsize_0_for_cython_array;
 static PyObject *__pyx_n_s_j;
 static PyObject *__pyx_n_s_k;
-static PyObject *__pyx_n_s_m;
 static PyObject *__pyx_n_s_main;
 static PyObject *__pyx_n_s_memview;
 static PyObject *__pyx_n_s_mode;
-static PyObject *__pyx_n_s_n;
+static PyObject *__pyx_n_s_n_cand;
 static PyObject *__pyx_n_s_n_pref_by_rank;
 static PyObject *__pyx_n_s_n_pref_i_over_j;
+static PyObject *__pyx_n_s_n_voters;
 static PyObject *__pyx_n_s_name;
 static PyObject *__pyx_n_s_name_2;
 static PyObject *__pyx_n_s_ndim;
@@ -1861,8 +1861,8 @@ static PyObject *__pyx_codeobj__28;
  * # input: p=np.array(pop.preferences_rk, dtype=np.intc)
  * 
  * def c_gen_pref_summaries(int[:, :] pref_ballots):             # <<<<<<<<<<<<<<
- *     cdef int n = pref_ballots.shape[0]
- *     cdef int m = pref_ballots.shape[1]
+ *     cdef int n_voters = pref_ballots.shape[0]
+ *     cdef int n_cand = pref_ballots.shape[1]
  */
 
 /* Python wrapper */
@@ -1890,8 +1890,8 @@ static PyObject *__pyx_pw_11pref_matrix_1c_gen_pref_summaries(PyObject *__pyx_se
 }
 
 static PyObject *__pyx_pf_11pref_matrix_c_gen_pref_summaries(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_pref_ballots) {
-  int __pyx_v_n;
-  int __pyx_v_m;
+  int __pyx_v_n_voters;
+  int __pyx_v_n_cand;
   __Pyx_memviewslice __pyx_v_n_pref_i_over_j = { 0, 0, { 0 }, { 0 }, { 0 } };
   __Pyx_memviewslice __pyx_v_n_pref_by_rank = { 0, 0, { 0 }, { 0 }, { 0 } };
   int __pyx_v_i;
@@ -1928,26 +1928,26 @@ static PyObject *__pyx_pf_11pref_matrix_c_gen_pref_summaries(CYTHON_UNUSED PyObj
   /* "pref_matrix.pyx":8
  * 
  * def c_gen_pref_summaries(int[:, :] pref_ballots):
- *     cdef int n = pref_ballots.shape[0]             # <<<<<<<<<<<<<<
- *     cdef int m = pref_ballots.shape[1]
- *     cdef int[:, :] n_pref_i_over_j = np.zeros((n, n), dtype=np.intc)
+ *     cdef int n_voters = pref_ballots.shape[0]             # <<<<<<<<<<<<<<
+ *     cdef int n_cand = pref_ballots.shape[1]
+ *     cdef int[:, :] n_pref_i_over_j = np.zeros((n_cand, n_cand), dtype=np.intc)
  */
-  __pyx_v_n = (__pyx_v_pref_ballots.shape[0]);
+  __pyx_v_n_voters = (__pyx_v_pref_ballots.shape[0]);
 
   /* "pref_matrix.pyx":9
  * def c_gen_pref_summaries(int[:, :] pref_ballots):
- *     cdef int n = pref_ballots.shape[0]
- *     cdef int m = pref_ballots.shape[1]             # <<<<<<<<<<<<<<
- *     cdef int[:, :] n_pref_i_over_j = np.zeros((n, n), dtype=np.intc)
- *     cdef int[:, :] n_pref_by_rank = np.zeros((n, n), dtype=np.intc)
+ *     cdef int n_voters = pref_ballots.shape[0]
+ *     cdef int n_cand = pref_ballots.shape[1]             # <<<<<<<<<<<<<<
+ *     cdef int[:, :] n_pref_i_over_j = np.zeros((n_cand, n_cand), dtype=np.intc)
+ *     cdef int[:, :] n_pref_by_rank = np.zeros((n_cand, n_cand), dtype=np.intc)
  */
-  __pyx_v_m = (__pyx_v_pref_ballots.shape[1]);
+  __pyx_v_n_cand = (__pyx_v_pref_ballots.shape[1]);
 
   /* "pref_matrix.pyx":10
- *     cdef int n = pref_ballots.shape[0]
- *     cdef int m = pref_ballots.shape[1]
- *     cdef int[:, :] n_pref_i_over_j = np.zeros((n, n), dtype=np.intc)             # <<<<<<<<<<<<<<
- *     cdef int[:, :] n_pref_by_rank = np.zeros((n, n), dtype=np.intc)
+ *     cdef int n_voters = pref_ballots.shape[0]
+ *     cdef int n_cand = pref_ballots.shape[1]
+ *     cdef int[:, :] n_pref_i_over_j = np.zeros((n_cand, n_cand), dtype=np.intc)             # <<<<<<<<<<<<<<
+ *     cdef int[:, :] n_pref_by_rank = np.zeros((n_cand, n_cand), dtype=np.intc)
  * 
  */
   __pyx_t_1 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 10, __pyx_L1_error)
@@ -1955,9 +1955,9 @@ static PyObject *__pyx_pf_11pref_matrix_c_gen_pref_summaries(CYTHON_UNUSED PyObj
   __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_zeros); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 10, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = __Pyx_PyInt_From_int(__pyx_v_n); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 10, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyInt_From_int(__pyx_v_n_cand); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 10, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_n); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 10, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_n_cand); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 10, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_t_4 = PyTuple_New(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 10, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
@@ -1994,9 +1994,9 @@ static PyObject *__pyx_pf_11pref_matrix_c_gen_pref_summaries(CYTHON_UNUSED PyObj
   __pyx_t_6.data = NULL;
 
   /* "pref_matrix.pyx":11
- *     cdef int m = pref_ballots.shape[1]
- *     cdef int[:, :] n_pref_i_over_j = np.zeros((n, n), dtype=np.intc)
- *     cdef int[:, :] n_pref_by_rank = np.zeros((n, n), dtype=np.intc)             # <<<<<<<<<<<<<<
+ *     cdef int n_cand = pref_ballots.shape[1]
+ *     cdef int[:, :] n_pref_i_over_j = np.zeros((n_cand, n_cand), dtype=np.intc)
+ *     cdef int[:, :] n_pref_by_rank = np.zeros((n_cand, n_cand), dtype=np.intc)             # <<<<<<<<<<<<<<
  * 
  *     cdef int i, j, k, d
  */
@@ -2005,9 +2005,9 @@ static PyObject *__pyx_pf_11pref_matrix_c_gen_pref_summaries(CYTHON_UNUSED PyObj
   __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_5, __pyx_n_s_zeros); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 11, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  __pyx_t_5 = __Pyx_PyInt_From_int(__pyx_v_n); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 11, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyInt_From_int(__pyx_v_n_cand); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 11, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
-  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_n); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 11, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_n_cand); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 11, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_t_2 = PyTuple_New(2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 11, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
@@ -2046,30 +2046,30 @@ static PyObject *__pyx_pf_11pref_matrix_c_gen_pref_summaries(CYTHON_UNUSED PyObj
   /* "pref_matrix.pyx":15
  *     cdef int i, j, k, d
  * 
- *     for i in range(n): # iterate over ballots             # <<<<<<<<<<<<<<
- *         for j in range(m): #iterate over ranks
+ *     for i in range(n_voters): # iterate over ballots             # <<<<<<<<<<<<<<
+ *         for j in range(n_cand): #iterate over ranks
  *             n_pref_by_rank[j, pref_ballots[i, j]] += 1
  */
-  __pyx_t_7 = __pyx_v_n;
+  __pyx_t_7 = __pyx_v_n_voters;
   for (__pyx_t_8 = 0; __pyx_t_8 < __pyx_t_7; __pyx_t_8+=1) {
     __pyx_v_i = __pyx_t_8;
 
     /* "pref_matrix.pyx":16
  * 
- *     for i in range(n): # iterate over ballots
- *         for j in range(m): #iterate over ranks             # <<<<<<<<<<<<<<
+ *     for i in range(n_voters): # iterate over ballots
+ *         for j in range(n_cand): #iterate over ranks             # <<<<<<<<<<<<<<
  *             n_pref_by_rank[j, pref_ballots[i, j]] += 1
- *             for k in range(j+1, m):
+ *             for k in range(j + 1, n_cand):
  */
-    __pyx_t_9 = __pyx_v_m;
+    __pyx_t_9 = __pyx_v_n_cand;
     for (__pyx_t_10 = 0; __pyx_t_10 < __pyx_t_9; __pyx_t_10+=1) {
       __pyx_v_j = __pyx_t_10;
 
       /* "pref_matrix.pyx":17
- *     for i in range(n): # iterate over ballots
- *         for j in range(m): #iterate over ranks
+ *     for i in range(n_voters): # iterate over ballots
+ *         for j in range(n_cand): #iterate over ranks
  *             n_pref_by_rank[j, pref_ballots[i, j]] += 1             # <<<<<<<<<<<<<<
- *             for k in range(j+1, m):
+ *             for k in range(j + 1, n_cand):
  *                 n_pref_i_over_j[pref_ballots[i, j], pref_ballots[i, k]] += 1
  */
       __pyx_t_11 = __pyx_v_i;
@@ -2105,19 +2105,19 @@ static PyObject *__pyx_pf_11pref_matrix_c_gen_pref_summaries(CYTHON_UNUSED PyObj
       *((int *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_n_pref_by_rank.data + __pyx_t_14 * __pyx_v_n_pref_by_rank.strides[0]) ) + __pyx_t_15 * __pyx_v_n_pref_by_rank.strides[1]) )) += 1;
 
       /* "pref_matrix.pyx":18
- *         for j in range(m): #iterate over ranks
+ *         for j in range(n_cand): #iterate over ranks
  *             n_pref_by_rank[j, pref_ballots[i, j]] += 1
- *             for k in range(j+1, m):             # <<<<<<<<<<<<<<
+ *             for k in range(j + 1, n_cand):             # <<<<<<<<<<<<<<
  *                 n_pref_i_over_j[pref_ballots[i, j], pref_ballots[i, k]] += 1
  * 
  */
-      __pyx_t_13 = __pyx_v_m;
+      __pyx_t_13 = __pyx_v_n_cand;
       for (__pyx_t_16 = (__pyx_v_j + 1); __pyx_t_16 < __pyx_t_13; __pyx_t_16+=1) {
         __pyx_v_k = __pyx_t_16;
 
         /* "pref_matrix.pyx":19
  *             n_pref_by_rank[j, pref_ballots[i, j]] += 1
- *             for k in range(j+1, m):
+ *             for k in range(j + 1, n_cand):
  *                 n_pref_i_over_j[pref_ballots[i, j], pref_ballots[i, k]] += 1             # <<<<<<<<<<<<<<
  * 
  *     return np.asarray(n_pref_by_rank), np.asarray(n_pref_i_over_j)
@@ -2176,7 +2176,6 @@ static PyObject *__pyx_pf_11pref_matrix_c_gen_pref_summaries(CYTHON_UNUSED PyObj
  *                 n_pref_i_over_j[pref_ballots[i, j], pref_ballots[i, k]] += 1
  * 
  *     return np.asarray(n_pref_by_rank), np.asarray(n_pref_i_over_j)             # <<<<<<<<<<<<<<
- *     # return n_pref_by_rank, n_pref_i_over_j
  */
   __Pyx_XDECREF(__pyx_r);
   __pyx_t_2 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 21, __pyx_L1_error)
@@ -2301,8 +2300,8 @@ static PyObject *__pyx_pf_11pref_matrix_c_gen_pref_summaries(CYTHON_UNUSED PyObj
  * # input: p=np.array(pop.preferences_rk, dtype=np.intc)
  * 
  * def c_gen_pref_summaries(int[:, :] pref_ballots):             # <<<<<<<<<<<<<<
- *     cdef int n = pref_ballots.shape[0]
- *     cdef int m = pref_ballots.shape[1]
+ *     cdef int n_voters = pref_ballots.shape[0]
+ *     cdef int n_cand = pref_ballots.shape[1]
  */
 
   /* function exit code */
@@ -15892,13 +15891,13 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_kp_s_itemsize_0_for_cython_array, __pyx_k_itemsize_0_for_cython_array, sizeof(__pyx_k_itemsize_0_for_cython_array), 0, 0, 1, 0},
   {&__pyx_n_s_j, __pyx_k_j, sizeof(__pyx_k_j), 0, 0, 1, 1},
   {&__pyx_n_s_k, __pyx_k_k, sizeof(__pyx_k_k), 0, 0, 1, 1},
-  {&__pyx_n_s_m, __pyx_k_m, sizeof(__pyx_k_m), 0, 0, 1, 1},
   {&__pyx_n_s_main, __pyx_k_main, sizeof(__pyx_k_main), 0, 0, 1, 1},
   {&__pyx_n_s_memview, __pyx_k_memview, sizeof(__pyx_k_memview), 0, 0, 1, 1},
   {&__pyx_n_s_mode, __pyx_k_mode, sizeof(__pyx_k_mode), 0, 0, 1, 1},
-  {&__pyx_n_s_n, __pyx_k_n, sizeof(__pyx_k_n), 0, 0, 1, 1},
+  {&__pyx_n_s_n_cand, __pyx_k_n_cand, sizeof(__pyx_k_n_cand), 0, 0, 1, 1},
   {&__pyx_n_s_n_pref_by_rank, __pyx_k_n_pref_by_rank, sizeof(__pyx_k_n_pref_by_rank), 0, 0, 1, 1},
   {&__pyx_n_s_n_pref_i_over_j, __pyx_k_n_pref_i_over_j, sizeof(__pyx_k_n_pref_i_over_j), 0, 0, 1, 1},
+  {&__pyx_n_s_n_voters, __pyx_k_n_voters, sizeof(__pyx_k_n_voters), 0, 0, 1, 1},
   {&__pyx_n_s_name, __pyx_k_name, sizeof(__pyx_k_name), 0, 0, 1, 1},
   {&__pyx_n_s_name_2, __pyx_k_name_2, sizeof(__pyx_k_name_2), 0, 0, 1, 1},
   {&__pyx_n_s_ndim, __pyx_k_ndim, sizeof(__pyx_k_ndim), 0, 0, 1, 1},
@@ -16169,10 +16168,10 @@ static int __Pyx_InitCachedConstants(void) {
  * # input: p=np.array(pop.preferences_rk, dtype=np.intc)
  * 
  * def c_gen_pref_summaries(int[:, :] pref_ballots):             # <<<<<<<<<<<<<<
- *     cdef int n = pref_ballots.shape[0]
- *     cdef int m = pref_ballots.shape[1]
+ *     cdef int n_voters = pref_ballots.shape[0]
+ *     cdef int n_cand = pref_ballots.shape[1]
  */
-  __pyx_tuple__20 = PyTuple_Pack(10, __pyx_n_s_pref_ballots, __pyx_n_s_pref_ballots, __pyx_n_s_n, __pyx_n_s_m, __pyx_n_s_n_pref_i_over_j, __pyx_n_s_n_pref_by_rank, __pyx_n_s_i, __pyx_n_s_j, __pyx_n_s_k, __pyx_n_s_d); if (unlikely(!__pyx_tuple__20)) __PYX_ERR(0, 7, __pyx_L1_error)
+  __pyx_tuple__20 = PyTuple_Pack(10, __pyx_n_s_pref_ballots, __pyx_n_s_pref_ballots, __pyx_n_s_n_voters, __pyx_n_s_n_cand, __pyx_n_s_n_pref_i_over_j, __pyx_n_s_n_pref_by_rank, __pyx_n_s_i, __pyx_n_s_j, __pyx_n_s_k, __pyx_n_s_d); if (unlikely(!__pyx_tuple__20)) __PYX_ERR(0, 7, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__20);
   __Pyx_GIVEREF(__pyx_tuple__20);
   __pyx_codeobj__21 = (PyObject*)__Pyx_PyCode_New(1, 0, 10, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__20, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pref_matrix_pyx, __pyx_n_s_c_gen_pref_summaries, 7, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__21)) __PYX_ERR(0, 7, __pyx_L1_error)
@@ -16460,8 +16459,8 @@ static int __pyx_pymod_exec_pref_matrix(PyObject *__pyx_pyinit_module)
  * # input: p=np.array(pop.preferences_rk, dtype=np.intc)
  * 
  * def c_gen_pref_summaries(int[:, :] pref_ballots):             # <<<<<<<<<<<<<<
- *     cdef int n = pref_ballots.shape[0]
- *     cdef int m = pref_ballots.shape[1]
+ *     cdef int n_voters = pref_ballots.shape[0]
+ *     cdef int n_cand = pref_ballots.shape[1]
  */
   __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_11pref_matrix_1c_gen_pref_summaries, NULL, __pyx_n_s_pref_matrix); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 7, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);

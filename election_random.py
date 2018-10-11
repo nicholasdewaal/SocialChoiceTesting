@@ -1,6 +1,6 @@
 
 from addict import Dict
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count, Lock
 from numpy import cumsum, arange
 from random import uniform, shuffle
 from collections import defaultdict
@@ -65,7 +65,8 @@ def assert_weights_sound(weights):
         assert abs(sum(column) - 1) < .0001
 
 
-def gen_pref_summaries(pref_ballots): # DELETE ONCE CYTHON FUNC TESTED!
+def gen_pref_summaries(pref_ballots): # Put into testing code to always check
+    # it matches cython code.
 
     '''
     Warning: this function is slow. Use the cython implementation in pref_matrix
@@ -82,13 +83,6 @@ def gen_pref_summaries(pref_ballots): # DELETE ONCE CYTHON FUNC TESTED!
             for c_less_pref in pref_rank[jj+1:]:
                 n_pref_i_over_j[ranked_val][c_less_pref] += 1 #this line is
                 # half the cpu work
-
-    # for pref_rank in pref_ballots: #same speed as above!
-        # previous = set()
-        # for ranked_val in pref_rank:
-            # for p in previous:
-                # n_pref_i_over_j[p][ranked_val] += 1 #this line is # half the cpu work
-            # previous.add(ranked_val)
 
     return n_pref_by_rank, n_pref_i_over_j
 
@@ -198,7 +192,7 @@ def gen_until_2_winners_plurality(weights, points_to_win=2):
     '''
     Plurality voting special case. weights are first choice only; not ranked.
     '''
-   return gen_until_2_winners_borda([weights], points_to_win)
+    return gen_until_2_winners_borda([weights], points_to_win)
 
 
 def get_pairoff_winner(two_candidates, pref_ij):
@@ -214,7 +208,7 @@ def DeWaal_borda(pref_ballots, points_to_win=2.3, borda_decay=.5,
     '''
     Returns (set of primary winners (2), finals winner)
     '''
-    if not(pref_ij and n_pref_by_rank):
+    if not(pref_ij is None) or not(n_pref_by_rank is None):
         n_pref_by_rank, pref_ij = gen_pref_summaries(pref_ballots)
     weights = get_weights_from_counts(n_pref_by_rank)
     win2_set = gen_until_2_winners_borda(weights, points_to_win, borda_decay)
@@ -226,7 +220,7 @@ def DeWaal_plurality(pref_ballots, points_to_win=2,
     '''
     Returns (set of primary winners (2), finals winner)
     '''
-    if not(pref_ij and n_pref_by_rank):
+    if not(pref_ij is None) or not(n_pref_by_rank is None):
         n_pref_by_rank, pref_ij = gen_pref_summaries(pref_ballots)
     weights = get_weights_from_counts(n_pref_by_rank)[0]
     win2_set = gen_until_2_winners_plurality(weights, points_to_win)
@@ -367,6 +361,7 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
     win. Iraqi Shia vs. Sunnis, or US politics from 2012-now are great examples.
 
     '''
+    set_trace()
     pref_ballots = pop_object.preferences_rk.tolist()
     if not(n_pref_by_rank and pref_i_to_j):
         p = np.array(pop.preferences_rk, dtype=np.intc)
@@ -393,13 +388,15 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
 
     _, results['dewaal_borda2'] = DeWaal_borda(pref_ballots, points_to_win=2,
         pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-    _, results['dewaal_borda2.3'] = DeWaal_borda(pref_ballots,
+    _, results['dewaal_bor2.3'] = DeWaal_borda(pref_ballots,
         pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
     _, results['dewaal_borda3'] = DeWaal_borda(pref_ballots, points_to_win=3,
         pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-    _, results['dewaal_borda3.8'] = DeWaal_borda(pref_ballots,
+    _, results['dewaal_bor3.8'] = DeWaal_borda(pref_ballots,
         points_to_win=3.8, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
     _, results['dewaal_borda5'] = DeWaal_borda(pref_ballots, points_to_win=5,
+        pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
+    _, results['dewaal_bord12'] = DeWaal_borda(pref_ballots, points_to_win=12,
         pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
     # _, results['dewaal_plurality'] = DeWaal_plurality(pref_ballots,
         # pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
@@ -409,8 +406,8 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
 
 def get_happinesses_by_method(pop_iterator, fast=False):#=iter_rand_pop_polar):
 
-    num_cpu = multiprocessing.cpu_count()
-    lock = multiprocessing.lock()
+    num_cpu = cpu_count()
+    lock = Lock()
     num_sim, current_sim = 1500, 0
     utils_by_scf = Dict()
     dataframe_dict = Dict()

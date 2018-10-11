@@ -17,7 +17,7 @@ class IRV_Variants():
         self._n_candidates = len(all_ballots[0])
         self._candidates = set(all_ballots[0])
         # _n_vote_i_to_j[i][j] = pct or # of votes for candidate i over j
-        self._n_vote_i_to_j = num_i_to_j if num_i_to_j else \
+        self._n_vote_i_to_j = num_i_to_j if not(num_i_to_j is None) else \
             pref_matrix.c_gen_pref_summaries(self._all_ballots)[1]
         self._primary_smith_set = self.get_smith_set(self._candidates)
         # self._pref_graph =

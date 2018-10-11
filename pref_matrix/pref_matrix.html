@@ -412,8 +412,8 @@ static PyObject *__pyx_pw_11pref_matrix_1c_gen_pref_summaries(PyObject *__pyx_se
 }
 
 static PyObject *__pyx_pf_11pref_matrix_c_gen_pref_summaries(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_pref_ballots) {
-  int __pyx_v_n;
-  int __pyx_v_m;
+  int __pyx_v_n_voters;
+  int __pyx_v_n_cand;
   __Pyx_memviewslice __pyx_v_n_pref_i_over_j = { 0, 0, { 0 }, { 0 }, { 0 } };
   __Pyx_memviewslice __pyx_v_n_pref_by_rank = { 0, 0, { 0 }, { 0 }, { 0 } };
   int __pyx_v_i;
@@ -443,7 +443,7 @@ static PyObject *__pyx_pf_11pref_matrix_c_gen_pref_summaries(CYTHON_UNUSED PyObj
   return __pyx_r;
 }
 /* … */
-  __pyx_tuple__20 = <span class='py_c_api'>PyTuple_Pack</span>(10, __pyx_n_s_pref_ballots, __pyx_n_s_pref_ballots, __pyx_n_s_n, __pyx_n_s_m, __pyx_n_s_n_pref_i_over_j, __pyx_n_s_n_pref_by_rank, __pyx_n_s_i, __pyx_n_s_j, __pyx_n_s_k, __pyx_n_s_d);<span class='error_goto'> if (unlikely(!__pyx_tuple__20)) __PYX_ERR(0, 7, __pyx_L1_error)</span>
+  __pyx_tuple__20 = <span class='py_c_api'>PyTuple_Pack</span>(10, __pyx_n_s_pref_ballots, __pyx_n_s_pref_ballots, __pyx_n_s_n_voters, __pyx_n_s_n_cand, __pyx_n_s_n_pref_i_over_j, __pyx_n_s_n_pref_by_rank, __pyx_n_s_i, __pyx_n_s_j, __pyx_n_s_k, __pyx_n_s_d);<span class='error_goto'> if (unlikely(!__pyx_tuple__20)) __PYX_ERR(0, 7, __pyx_L1_error)</span>
   <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_tuple__20);
   <span class='refnanny'>__Pyx_GIVEREF</span>(__pyx_tuple__20);
 /* … */
@@ -452,19 +452,19 @@ static PyObject *__pyx_pf_11pref_matrix_c_gen_pref_summaries(CYTHON_UNUSED PyObj
   if (<span class='py_c_api'>PyDict_SetItem</span>(__pyx_d, __pyx_n_s_c_gen_pref_summaries, __pyx_t_1) &lt; 0) <span class='error_goto'>__PYX_ERR(0, 7, __pyx_L1_error)</span>
   <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_codeobj__21 = (PyObject*)<span class='pyx_c_api'>__Pyx_PyCode_New</span>(1, 0, 10, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__20, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pref_matrix_pyx, __pyx_n_s_c_gen_pref_summaries, 7, __pyx_empty_bytes);<span class='error_goto'> if (unlikely(!__pyx_codeobj__21)) __PYX_ERR(0, 7, __pyx_L1_error)</span>
-</pre><pre class="cython line score-0" onclick='toggleDiv(this)'>+<span class="">08</span>:     <span class="k">cdef</span> <span class="kt">int</span> <span class="nf">n</span> <span class="o">=</span> <span class="n">pref_ballots</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mf">0</span><span class="p">]</span></pre>
-<pre class='cython code score-0 '>  __pyx_v_n = (__pyx_v_pref_ballots.shape[0]);
-</pre><pre class="cython line score-0" onclick='toggleDiv(this)'>+<span class="">09</span>:     <span class="k">cdef</span> <span class="kt">int</span> <span class="nf">m</span> <span class="o">=</span> <span class="n">pref_ballots</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mf">1</span><span class="p">]</span></pre>
-<pre class='cython code score-0 '>  __pyx_v_m = (__pyx_v_pref_ballots.shape[1]);
-</pre><pre class="cython line score-43" onclick='toggleDiv(this)'>+<span class="">10</span>:     <span class="k">cdef</span> <span class="kt">int</span>[<span class="p">:,</span> <span class="p">:]</span> <span class="n">n_pref_i_over_j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intc</span><span class="p">)</span></pre>
+</pre><pre class="cython line score-0" onclick='toggleDiv(this)'>+<span class="">08</span>:     <span class="k">cdef</span> <span class="kt">int</span> <span class="nf">n_voters</span> <span class="o">=</span> <span class="n">pref_ballots</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mf">0</span><span class="p">]</span></pre>
+<pre class='cython code score-0 '>  __pyx_v_n_voters = (__pyx_v_pref_ballots.shape[0]);
+</pre><pre class="cython line score-0" onclick='toggleDiv(this)'>+<span class="">09</span>:     <span class="k">cdef</span> <span class="kt">int</span> <span class="nf">n_cand</span> <span class="o">=</span> <span class="n">pref_ballots</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mf">1</span><span class="p">]</span></pre>
+<pre class='cython code score-0 '>  __pyx_v_n_cand = (__pyx_v_pref_ballots.shape[1]);
+</pre><pre class="cython line score-43" onclick='toggleDiv(this)'>+<span class="">10</span>:     <span class="k">cdef</span> <span class="kt">int</span>[<span class="p">:,</span> <span class="p">:]</span> <span class="n">n_pref_i_over_j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_cand</span><span class="p">,</span> <span class="n">n_cand</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intc</span><span class="p">)</span></pre>
 <pre class='cython code score-43 '>  __pyx_t_1 = <span class='pyx_c_api'>__Pyx_GetModuleGlobalName</span>(__pyx_n_s_np);<span class='error_goto'> if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 10, __pyx_L1_error)</span>
   <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_1);
   __pyx_t_2 = <span class='pyx_c_api'>__Pyx_PyObject_GetAttrStr</span>(__pyx_t_1, __pyx_n_s_zeros);<span class='error_goto'> if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 10, __pyx_L1_error)</span>
   <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_2);
   <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = <span class='pyx_c_api'>__Pyx_PyInt_From_int</span>(__pyx_v_n);<span class='error_goto'> if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 10, __pyx_L1_error)</span>
+  __pyx_t_1 = <span class='pyx_c_api'>__Pyx_PyInt_From_int</span>(__pyx_v_n_cand);<span class='error_goto'> if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 10, __pyx_L1_error)</span>
   <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_1);
-  __pyx_t_3 = <span class='pyx_c_api'>__Pyx_PyInt_From_int</span>(__pyx_v_n);<span class='error_goto'> if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 10, __pyx_L1_error)</span>
+  __pyx_t_3 = <span class='pyx_c_api'>__Pyx_PyInt_From_int</span>(__pyx_v_n_cand);<span class='error_goto'> if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 10, __pyx_L1_error)</span>
   <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_3);
   __pyx_t_4 = <span class='py_c_api'>PyTuple_New</span>(2);<span class='error_goto'> if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 10, __pyx_L1_error)</span>
   <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_4);
@@ -499,15 +499,15 @@ static PyObject *__pyx_pf_11pref_matrix_c_gen_pref_summaries(CYTHON_UNUSED PyObj
   __pyx_v_n_pref_i_over_j = __pyx_t_6;
   __pyx_t_6.memview = NULL;
   __pyx_t_6.data = NULL;
-</pre><pre class="cython line score-43" onclick='toggleDiv(this)'>+<span class="">11</span>:     <span class="k">cdef</span> <span class="kt">int</span>[<span class="p">:,</span> <span class="p">:]</span> <span class="n">n_pref_by_rank</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intc</span><span class="p">)</span></pre>
+</pre><pre class="cython line score-43" onclick='toggleDiv(this)'>+<span class="">11</span>:     <span class="k">cdef</span> <span class="kt">int</span>[<span class="p">:,</span> <span class="p">:]</span> <span class="n">n_pref_by_rank</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_cand</span><span class="p">,</span> <span class="n">n_cand</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intc</span><span class="p">)</span></pre>
 <pre class='cython code score-43 '>  __pyx_t_5 = <span class='pyx_c_api'>__Pyx_GetModuleGlobalName</span>(__pyx_n_s_np);<span class='error_goto'> if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 11, __pyx_L1_error)</span>
   <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_5);
   __pyx_t_4 = <span class='pyx_c_api'>__Pyx_PyObject_GetAttrStr</span>(__pyx_t_5, __pyx_n_s_zeros);<span class='error_goto'> if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 11, __pyx_L1_error)</span>
   <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_4);
   <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_5); __pyx_t_5 = 0;
-  __pyx_t_5 = <span class='pyx_c_api'>__Pyx_PyInt_From_int</span>(__pyx_v_n);<span class='error_goto'> if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 11, __pyx_L1_error)</span>
+  __pyx_t_5 = <span class='pyx_c_api'>__Pyx_PyInt_From_int</span>(__pyx_v_n_cand);<span class='error_goto'> if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 11, __pyx_L1_error)</span>
   <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_5);
-  __pyx_t_3 = <span class='pyx_c_api'>__Pyx_PyInt_From_int</span>(__pyx_v_n);<span class='error_goto'> if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 11, __pyx_L1_error)</span>
+  __pyx_t_3 = <span class='pyx_c_api'>__Pyx_PyInt_From_int</span>(__pyx_v_n_cand);<span class='error_goto'> if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 11, __pyx_L1_error)</span>
   <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_3);
   __pyx_t_2 = <span class='py_c_api'>PyTuple_New</span>(2);<span class='error_goto'> if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 11, __pyx_L1_error)</span>
   <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_2);
@@ -545,12 +545,12 @@ static PyObject *__pyx_pf_11pref_matrix_c_gen_pref_summaries(CYTHON_UNUSED PyObj
 </pre><pre class="cython line score-0">&#xA0;<span class="">12</span>: </pre>
 <pre class="cython line score-0">&#xA0;<span class="">13</span>:     <span class="k">cdef</span> <span class="kt">int</span> <span class="nf">i</span><span class="p">,</span> <span class="nf">j</span><span class="p">,</span> <span class="nf">k</span><span class="p">,</span> <span class="nf">d</span></pre>
 <pre class="cython line score-0">&#xA0;<span class="">14</span>: </pre>
-<pre class="cython line score-0" onclick='toggleDiv(this)'>+<span class="">15</span>:     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span> <span class="c"># iterate over ballots</span></pre>
-<pre class='cython code score-0 '>  __pyx_t_7 = __pyx_v_n;
+<pre class="cython line score-0" onclick='toggleDiv(this)'>+<span class="">15</span>:     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_voters</span><span class="p">):</span> <span class="c"># iterate over ballots</span></pre>
+<pre class='cython code score-0 '>  __pyx_t_7 = __pyx_v_n_voters;
   for (__pyx_t_8 = 0; __pyx_t_8 &lt; __pyx_t_7; __pyx_t_8+=1) {
     __pyx_v_i = __pyx_t_8;
-</pre><pre class="cython line score-0" onclick='toggleDiv(this)'>+<span class="">16</span>:         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">):</span> <span class="c">#iterate over ranks</span></pre>
-<pre class='cython code score-0 '>    __pyx_t_9 = __pyx_v_m;
+</pre><pre class="cython line score-0" onclick='toggleDiv(this)'>+<span class="">16</span>:         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_cand</span><span class="p">):</span> <span class="c">#iterate over ranks</span></pre>
+<pre class='cython code score-0 '>    __pyx_t_9 = __pyx_v_n_cand;
     for (__pyx_t_10 = 0; __pyx_t_10 &lt; __pyx_t_9; __pyx_t_10+=1) {
       __pyx_v_j = __pyx_t_10;
 </pre><pre class="cython line score-4" onclick='toggleDiv(this)'>+<span class="">17</span>:             <span class="n">n_pref_by_rank</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">pref_ballots</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]]</span> <span class="o">+=</span> <span class="mf">1</span></pre>
@@ -585,8 +585,8 @@ static PyObject *__pyx_pf_11pref_matrix_c_gen_pref_summaries(CYTHON_UNUSED PyObj
         <span class='error_goto'>__PYX_ERR(0, 17, __pyx_L1_error)</span>
       }
       *((int *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_n_pref_by_rank.data + __pyx_t_14 * __pyx_v_n_pref_by_rank.strides[0]) ) + __pyx_t_15 * __pyx_v_n_pref_by_rank.strides[1]) )) += 1;
-</pre><pre class="cython line score-0" onclick='toggleDiv(this)'>+<span class="">18</span>:             <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">j</span><span class="o">+</span><span class="mf">1</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span></pre>
-<pre class='cython code score-0 '>      __pyx_t_13 = __pyx_v_m;
+</pre><pre class="cython line score-0" onclick='toggleDiv(this)'>+<span class="">18</span>:             <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mf">1</span><span class="p">,</span> <span class="n">n_cand</span><span class="p">):</span></pre>
+<pre class='cython code score-0 '>      __pyx_t_13 = __pyx_v_n_cand;
       for (__pyx_t_16 = (__pyx_v_j + 1); __pyx_t_16 &lt; __pyx_t_13; __pyx_t_16+=1) {
         __pyx_v_k = __pyx_t_16;
 </pre><pre class="cython line score-6" onclick='toggleDiv(this)'>+<span class="">19</span>:                 <span class="n">n_pref_i_over_j</span><span class="p">[</span><span class="n">pref_ballots</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="n">pref_ballots</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">k</span><span class="p">]]</span> <span class="o">+=</span> <span class="mf">1</span></pre>
@@ -759,5 +759,4 @@ static PyObject *__pyx_pf_11pref_matrix_c_gen_pref_summaries(CYTHON_UNUSED PyObj
   __pyx_r = __pyx_t_2;
   __pyx_t_2 = 0;
   goto __pyx_L0;
-</pre><pre class="cython line score-0">&#xA0;<span class="">22</span>:     <span class="c"># return n_pref_by_rank, n_pref_i_over_j</span></pre>
-</div></body></html>
+</pre></div></body></html>
