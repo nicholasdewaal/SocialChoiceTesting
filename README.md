@@ -6,3 +6,5 @@
   This software is a work in progress, and is NOT ready to use. Also, a better ReadMe will be provided at a later time.
 
   Work left to do includes creating tests, finishing simulations, and documentation.
+  
+  The license for using this software is GPL v3 as written in the included file License.txt.
