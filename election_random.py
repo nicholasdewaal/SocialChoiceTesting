@@ -21,7 +21,7 @@ def gen_weights_zipf(n_weights, zipf_param=1.13):
     candidates/frequencies.
     '''
     rv = zipf(zipf_param)
-    out_weights = [rv.pmf(j) for j in range(1, n_weights+1)]
+    out_weights = [rv.pmf(j) for j in range(1, n_weights + 1)]
     reweight_factor = sum(out_weights)
     out_weights = [x / reweight_factor for x in out_weights]
     return out_weights
@@ -38,8 +38,8 @@ def gen_ranked_preferences_zipf(n_candidates, n_voters, zipf_param=1.1):
 
     rv = zipf(zipf_param)
     # zipf of index 0 doesn't exist, thus add 1: ii+1
-    scaler = sum(rv.pmf(ii+1) for ii in range(n_voters))
-    n_prefs = [n_voters*rv.pmf(i+1)/scaler for i in range(n_voters)]
+    scaler = sum(rv.pmf(ii + 1) for ii in range(n_voters))
+    n_prefs = [n_voters * rv.pmf(i + 1) / scaler for i in range(n_voters)]
 
     # Generate random preference ordering according to zipf distributed samples
     offset = 0
@@ -48,13 +48,13 @@ def gen_ranked_preferences_zipf(n_candidates, n_voters, zipf_param=1.1):
         offset = n - m + offset
         tmp_candidates = candidates.copy()
         shuffle(tmp_candidates)
-        pref_ballot_samples.extend([tuple(tmp_candidates)]*m)
+        pref_ballot_samples.extend([tuple(tmp_candidates)] * m)
 
     return pref_ballot_samples
 
 
 def get_weights_from_counts(counts):
-    return [[count/sum(cnt_row) for count in cnt_row] for cnt_row in counts]
+    return [[count / sum(cnt_row) for count in cnt_row] for cnt_row in counts]
 
 
 def assert_weights_sound(weights):
@@ -67,7 +67,6 @@ def assert_weights_sound(weights):
 
 def gen_pref_summaries(pref_ballots):  # Put into testing code to always check
     # it matches cython code.
-
     '''
     This function is slow. Use the Cython implementation in pref_matrix
     n_pref_by_rank: # voters who placed candidate (col idx) at rank (row idx)
@@ -80,17 +79,18 @@ def gen_pref_summaries(pref_ballots):  # Put into testing code to always check
     for pref_rank in pref_ballots:
         for jj, ranked_val in enumerate(pref_rank):
             n_pref_by_rank[jj][ranked_val] += 1
-            for c_less_pref in pref_rank[jj+1:]:
-                n_pref_i_over_j[ranked_val][c_less_pref] += 1 #this line is
+            for c_less_pref in pref_rank[jj + 1:]:
+                n_pref_i_over_j[ranked_val][c_less_pref] += 1  # this line is
                 # half the cpu work
 
     return n_pref_by_rank, n_pref_i_over_j
 
 
 def scale_utilities(in_utilities):
-    scaled_util = [(x-min(x))/(max(x)-min(x)) for x in in_utilities]
+    scaled_util = [(x - min(x)) / (max(x) - min(x)) for x in in_utilities]
     # scaled to get a percent total satisfaction of a population.
-    return sum(scaled_util) / len(scaled_util) # average happiness by candidate
+    # average happiness by candidate
+    return sum(scaled_util) / len(scaled_util)
 
 
 def social_util_by_cand(ranked_weights, fraction_happy_decay=.5):
@@ -138,12 +138,12 @@ def gen_until_2_winners_borda(ranked_weights, points_to_win=2.3,
     if len(ranked_weights) > 1:
         assert_weights_sound(ranked_weights)
         decay_rate = borda_decay ** (2 / (len(ranked_weights) - 1))
-    else: # In order to allow for re-using this code for DeWaal_plurality
+    else:  # In order to allow for re-using this code for DeWaal_plurality
         decay_rate = 1
         set_trace()
     ranges = [list(cumsum(weights)[0:-1]) for weights in ranked_weights]
-    won_points = defaultdict(int)
-    winning_set = set()
+    won_pts = defaultdict(int)
+    win_set = set()
     n_current_winners = 0
 
     # Select 2 primary winners using a hybrid of Borda count, and a variation
@@ -178,14 +178,14 @@ def gen_until_2_winners_borda(ranked_weights, points_to_win=2.3,
         for i, rng in enumerate(ranges):
             rn = uniform(0, 1)
             next_win = sum(1 for x in rng if x < rn)
-            won_points[next_win] += decay_rate ** i
-            if won_points[next_win] >= points_to_win and next_win not in winning_set:
+            won_pts[next_win] += decay_rate ** i
+            if won_pts[next_win] >= points_to_win and next_win not in win_set:
                 n_current_winners += 1
-                winning_set.add(next_win)
+                win_set.add(next_win)
             if n_current_winners == 2:
                 break
 
-    return winning_set
+    return win_set
 
 
 def gen_until_2_winners_plurality(weights, points_to_win=2):
@@ -216,7 +216,7 @@ def DeWaal_borda(pref_ballots, points_to_win=2.3, borda_decay=.5,
 
 
 def DeWaal_plurality(pref_ballots, points_to_win=2,
-                 pref_ij=None, n_pref_by_rank=None):
+                     pref_ij=None, n_pref_by_rank=None):
     '''
     Returns (set of primary winners (2), finals winner)
     '''
@@ -244,7 +244,7 @@ def simulate_DeWaal(weights, pref_ij, num_sim_per_weight=1000,
     happiness_freqs = list()
     # return_tuple = namedtuple()
 
-    while current_sim < num_sim: # Do num_sim simulated elections
+    while current_sim < num_sim:  # Do num_sim simulated elections
         # Handle simulated primary elections
         primary_winners, finals_winner = choice_func(pref_ballots, n_pts_win)
         for winner in primary_winners:
@@ -262,8 +262,8 @@ def simulate_DeWaal(weights, pref_ij, num_sim_per_weight=1000,
     finals_social_happinesses = social_util_by_cand(weights)
 
     # In the following, happiness_freqs is a list of tuples of social happiness
-    # occurring in the election simulation at a frequency of the corresponding
-    # to the second element of each tuple: (happiness_measure, frequency in sim)
+    # occurring in the election simulation at a frequency corresponding to
+    # the second element of each tuple: (happiness_measure, frequency in sim)
 
     final_winners = set(freq_finals_won.keys())
     for candidate_key, happy_ms in finals_social_happinesses.items():
@@ -277,7 +277,7 @@ def simulate_DeWaal(weights, pref_ij, num_sim_per_weight=1000,
     return freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness
 
 
-def plot_sim(weights, pref_ij, test_point_cuttoffs=[1,2,3],
+def plot_sim(weights, pref_ij, test_point_cuttoffs=[1, 2, 3],
              choice_function=DeWaal_borda):
 
     assert_weights_sound(ranked_weights)
@@ -296,14 +296,14 @@ def plot_sim(weights, pref_ij, test_point_cuttoffs=[1,2,3],
 
         freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness = \
             simulate_DeWaal(weights, pref_ij, num_sim_per_weight,
-                               n_pts_win=pts, choice_function=choice_function)
+                            n_pts_win=pts, choice_function=choice_function)
         print("avg_happiness: ", avg_happiness)
         # print("happiness_distr: ", happiness_freqs)
         print("Final_winner: ", freq_finals_won)
 
         primary_freqs = [freq_primry_won[ii] for ii in freq_primry_won]
-        plt.bar(index + j*bar_width, primary_freqs, bar_width, alpha=opacity,
-                color=colors[(j+1)%len(colors)], label=str(pts) + ' ballots')
+        plt.bar(index + j * bar_width, primary_freqs, bar_width, alpha=opacity,
+                color=colors[(j + 1) % len(colors)], label=str(pts) + ' ballots')
 
     plt.xlabel('Candidate')
     plt.ylabel('Probability of Winning Primary (2 Candidates will win)')
@@ -358,7 +358,7 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
 
     Condorcet methods in polarized societies cause wolves to eat the sheep in
     majority dominance. Borda-style SCF's cause a more consensus candidate to
-    win. Iraqi Shia vs. Sunnis, or US politics from 2012-now are great examples.
+    win. Iraqi Shia vs. Sunnis, or US politics from 2012-now are good examples.
 
     '''
     set_trace()
@@ -366,7 +366,7 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
     if not(n_pref_by_rank and pref_i_to_j):
         p = array(pop.preferences_rk, dtype=intc)
         n_pref_by_rank, pref_i_to_j = c_gen_pref_summaries(p)
-    results = dict() # name each election type
+    results = dict()  # name each election type
     hare_obj = irv_variants.IRV_Variants(pref_ballots, num_i_to_j=pref_i_to_j)
     results['tideman_hare'] = hare_obj.tideman_hare()
     results['smith_hare'] = hare_obj.smith_hare()
@@ -375,36 +375,37 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
     results['hare'] = svvamp.IRV(pop_object).w
 
     results['schulze'] = svvamp.Schulze(pop_object).w
-    results['borda'] =  svvamp.Borda(pop_object).w
-    results['nanson'] =  svvamp.Nanson(pop_object).w # borda-irv below avg
+    results['borda'] = svvamp.Borda(pop_object).w
+    results['nanson'] = svvamp.Nanson(pop_object).w  # borda-irv below avg
     if not fast:
-        results['baldwin'] = svvamp.Baldwin(pop_object).w # borda-irv
+        results['baldwin'] = svvamp.Baldwin(pop_object).w  # borda-irv
         results['range'] = svvamp.RangeVotingAverage(pop_object).w
     results['irv-duels'] = svvamp.IRVDuels(pop_object).w
     results['approval'] = svvamp.Approval(pop_object).w
     results['plurality'] = svvamp.Plurality(pop_object).w
-    results['coombs'] = svvamp.Coombs(pop_object).w # Like IRV, but elim most low rank
+    # Like IRV, but elim most low rank
+    results['coombs'] = svvamp.Coombs(pop_object).w
     # DeWaals method simulated 1 times, in sim, average will show in end.
 
     _, results['dewaal_borda2'] = DeWaal_borda(pref_ballots, points_to_win=2,
-        pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
+                        pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
     _, results['dewaal_bor2.3'] = DeWaal_borda(pref_ballots,
-        pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
+                        pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
     _, results['dewaal_borda3'] = DeWaal_borda(pref_ballots, points_to_win=3,
-        pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-    _, results['dewaal_bor3.8'] = DeWaal_borda(pref_ballots,
-        points_to_win=3.8, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
+                        pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
+    _, results['dewaal_bor3.8'] = DeWaal_borda(pref_ballots, points_to_win=3.8,
+                        pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
     _, results['dewaal_borda5'] = DeWaal_borda(pref_ballots, points_to_win=5,
-        pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
+                        pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
     _, results['dewaal_bord12'] = DeWaal_borda(pref_ballots, points_to_win=12,
-        pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
+                        pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
     # _, results['dewaal_plurality'] = DeWaal_plurality(pref_ballots,
-        # pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
+    # pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
 
     return results
 
 
-def get_happinesses_by_method(pop_iterator, fast=False):#=iter_rand_pop_polar):
+def get_happinesses_by_method(pop_iterator, fast=False):
 
     num_cpu = cpu_count()
     lock = Lock()
@@ -415,12 +416,14 @@ def get_happinesses_by_method(pop_iterator, fast=False):#=iter_rand_pop_polar):
 
     # modify each sim to run in parallel
     while current_sim < num_sim:
-        for n_candidates in test_num_candidates: # simulate for various numbers of candidates
+        # simulate for various numbers of candidates
+        for n_candidates in test_num_candidates:
             n_voters = n_candidates * 750
-            with Pool(num_cpu) as p: # parallelize, put -1 to save a cpu?
+            with Pool(num_cpu) as p:  # parallelize, put -1 to save a cpu?
                 nxt_sim = partial(next_sim_iter, lock=lock,
-                    utils_by_scf=utils_by_scf, n_candidates=n_candidates,
-                    current_sim=current_sim)
+                                  utils_by_scf=utils_by_scf,
+                                  n_candidates=n_candidates,
+                                  current_sim=current_sim)
                 p.map(nxt_sim, pop_iterator(n_voters, n_candidates))
             # for pop in pop_iterator(n_voters, n_candidates):
                 # p = array(pop.preferences_rk, dtype=intc)
@@ -428,14 +431,14 @@ def get_happinesses_by_method(pop_iterator, fast=False):#=iter_rand_pop_polar):
                 # weights = get_weights_from_counts(n_pref_by_rank)
                 # utils = social_util_by_cand(weights)
                 # winners_by_scf, param = simulate_all_elections(pop, fast=fast,
-                    # n_pref_by_rank=n_pref_by_rank, pref_i_to_j=pref_i_to_j)
+                # n_pref_by_rank=n_pref_by_rank, pref_i_to_j=pref_i_to_j)
         current_sim += 1
 
     # now make dict of DataFrames by paramaters, n_candidates
     for param, v_upper in utils_by_scf:
         for k, v_lower in v_upper:
             dataframe_dict[param][k] = DataFrame.from_dict(v)
-            dataframe_dict[param][k].boxplot() # labels? by axis?
+            dataframe_dict[param][k].boxplot()  # labels? by axis?
             plt.savefig("plot_p=" + str(param) + "_n_cand=" + str(k) + ".png")
             # plot means by n_candidates, param
 
@@ -449,16 +452,16 @@ def next_sim_iter(pop, param, lock, utils_by_scf, n_candidates, current_sim):
         n_pref_by_rank=n_pref_by_rank, pref_i_to_j=pref_i_to_j)
     with lock:
         utils_by_scf[param][n_candidates][current_sim] = \
-            {k : utils[v] for k,v in winners_by_scf.items()}
+            {k: utils[v] for k, v in winners_by_scf.items()}
 
 
 def iter_rand_pop_polar(n_voters, n_candidates, num_polarizations=5):
 
     polarization_list = [3 * ii for ii in range(num_polarizations)]
     for polarization in polarization_list:
-        # using the Von-Mises Fisher model, which represents a polarized culture:
+        # The Von-Mises Fisher model, which represents a polarized culture:
         pop = svvamp.PopulationVMFHypersphere(V=n_voters, C=n_candidates,
-              vmf_concentration=polarization)
+                                              vmf_concentration=polarization)
         yield pop, polarization
 
 
@@ -469,7 +472,7 @@ def iter_rand_pop_other(n_voters, n_candidates, num_polarizations=5):
 
 
 def iter_rand_pop_ladder(n_voters, n_candidates, num_polarizations=5,
-    ladder_rng=10):
+                         ladder_rng=10):
 
     for n in range(ladder_rng):  # Neutral cultures
         pop = svvamp.PopulationLadder(V=n_voters, C=n_candidates, nrungs=n)
