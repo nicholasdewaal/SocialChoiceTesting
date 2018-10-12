@@ -5,7 +5,7 @@ from pref_matrix.pref_matrix import c_gen_pref_summaries
 
 
 # def copy_list_of_lists(in_list):  # much faster than deepcopy, not used now
-    # return [y.copy() for y in in_list]
+#     return [y.copy() for y in in_list]
 
 
 class IRV_Variants():
@@ -19,7 +19,6 @@ class IRV_Variants():
             pref_matrix.c_gen_pref_summaries(self._all_ballots)[1]
         self._primary_smith_set = self.get_smith_set(self._candidates)
 
-
     def get_smith_set(self, candidates_to_check):
         '''
         returns tuple of cycle elements
@@ -28,19 +27,19 @@ class IRV_Variants():
         for i in candidates_to_check:
             for j in candidates_to_check:
                 # Candidate i domminates Candidate j
-                if i != j and self._n_vote_i_to_j[i][j] >= self._n_vote_i_to_j[j][i]:
+                if i != j and self._n_vote_i_to_j[i][j] \
+                        >= self._n_vote_i_to_j[j][i]:
                     graph[i].append(j)
         cycles = set(tuple(x) for x in tr.tarjan(graph))
         removal_set = set()
-        # if a member of cycle x is preferred to a member of cycle y, then all of
-        # cycle x is preferred to y, so y is not the smith set.
+        # if a member of cycle x is preferred to a member of cycle y, then all
+        # of cycle x is preferred to y, so y is not the smith set.
         for x in cycles:
             for y in cycles:
                 if x != y and y[0] in graph[x[0]]:
                     removal_set.add(y)
         smith_set = set((cycles - removal_set).pop())
         return smith_set
-
 
     def find_nxt_loser(self, existing_losers):
         counts = defaultdict(int)
@@ -68,7 +67,6 @@ class IRV_Variants():
 
         return winner, losers
 
-
     def hare(self, losers=set()):
         '''
         Classic Instant Runoff Voting
@@ -77,7 +75,6 @@ class IRV_Variants():
         while not winner:
             winner, losers = self.find_nxt_loser(losers)
         return winner
-
 
     def benham_hare(self):
         '''
@@ -91,11 +88,10 @@ class IRV_Variants():
                 return smith_set.pop()
             _, losers = self.find_nxt_loser(losers)
 
-
     def woodall_hare(self):
         '''
         get irv ranks
-        choose rank best in smith set as winner
+        choose rank best in Smith set as winner
         '''
         if len(self._primary_smith_set) == 1:
             return list(self._primary_smith_set)[0]
@@ -103,7 +99,6 @@ class IRV_Variants():
         irv_rank, irv_set, losers, prev_losers = list(), set(), set(), set()
 
         while not self._primary_smith_set.issubset(irv_set):
-        # while len(irv_rank) < self._n_candidates:
             _, losers, prev_losers = *self.find_nxt_loser(losers), losers
             for x in losers - prev_losers:
                 irv_rank.insert(0, x)
@@ -113,10 +108,10 @@ class IRV_Variants():
             if x in self._primary_smith_set:
                 return x
 
-
     def smith_hare(self):
         '''
-        Eliminate candidates not in the Smith set, then run hare on the remaining.
+        Eliminate candidates not in the Smith set, then run hare on those
+        remaining.
         '''
         if len(self._primary_smith_set) == 1:
             return list(self._primary_smith_set)[0]
@@ -125,10 +120,9 @@ class IRV_Variants():
         winner = self.hare(losers=losers)
         return winner
 
-
     def tideman_hare(self):
         '''
-        Alternate between eliminating candidates not in the smith set, and the
+        Alternate between eliminating candidates not in the Smith set, and the
         plurality loser.
         '''
         winner, losers = None, set()
@@ -141,4 +135,3 @@ class IRV_Variants():
                 losers = losers.union(self._candidates - smith_set)
                 winner, losers = self.find_nxt_loser(losers)
         return winner
-

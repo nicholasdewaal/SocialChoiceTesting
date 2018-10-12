@@ -65,13 +65,13 @@ def assert_weights_sound(weights):
         assert abs(sum(column) - 1) < .0001
 
 
-def gen_pref_summaries(pref_ballots): # Put into testing code to always check
+def gen_pref_summaries(pref_ballots):  # Put into testing code to always check
     # it matches cython code.
 
     '''
-    Warning: this function is slow. Use the cython implementation in pref_matrix
-    n_pref_by_rank: # of voters who placed candidate (col idx) at rank (row idx)
-    n_pref_i_over_j: # voters preferring candidate of row i to candidate of col j
+    This function is slow. Use the Cython implementation in pref_matrix
+    n_pref_by_rank: # voters who placed candidate (col idx) at rank (row idx)
+    n_pref_i_over_j: # voters preferring candidate row i to candidate col j
     '''
     N = len(pref_ballots[0])
     n_pref_i_over_j = [N * [0] for _ in range(N)]
@@ -176,7 +176,7 @@ def gen_until_2_winners_borda(ranked_weights, points_to_win=2.3,
         # len(ranked_weights)-1
 
         for i, rng in enumerate(ranges):
-            rn = uniform(0,1)
+            rn = uniform(0, 1)
             next_win = sum(1 for x in rng if x < rn)
             won_points[next_win] += decay_rate ** i
             if won_points[next_win] >= points_to_win and next_win not in winning_set:
@@ -471,22 +471,23 @@ def iter_rand_pop_other(n_voters, n_candidates, num_polarizations=5):
 def iter_rand_pop_ladder(n_voters, n_candidates, num_polarizations=5,
     ladder_rng=10):
 
-    for n in range(ladder_rng): # Neutral cultures
+    for n in range(ladder_rng):  # Neutral cultures
         pop = svvamp.PopulationLadder(V=n_voters, C=n_candidates, nrungs=n)
         yield pop, ladder_rng
 
 
 def iter_rand_pop_gauss(n_voters, n_candidates, num_polarizations=5):
-    #politcal spectrum:
+    # politcal spectrum:
     pop = svvamp.PopulationGaussianWell(V=num_voters, C=n_candidates,
-        sigma=[1], shift=[0])
+                                        sigma=[1], shift=[0])
     yield pop, gauss_vals
 
 
 def iter_rand_pop_zipf(n_voters, n_candidates,
-        zipf_params=arange(1.05,3.05, .12)):
-    for zipf_param in zipf_params: # Do for zipf sampled ballots
-        ballots = gen_ranked_preferences_zipf(n_candidates, n_voters, zipf_param)
+                       zipf_params=arange(1.05, 3.05, .12)):
+    for zipf_param in zipf_params:  # Do for zipf sampled ballots
+        ballots = gen_ranked_preferences_zipf(n_candidates, n_voters,
+                                              zipf_param)
         pop = svvamp.Population(preferences_rk=ballots)
         yield pop, zipf_param
 
@@ -500,9 +501,9 @@ if __name__ == "__main__":
     n_preferred_by_rank, pref_ij = c_gen_pref_summaries(votes)
     w = get_weights_from_counts(n_preferred_by_rank)
     all_happinesses = social_util_by_cand(w)
-    plot_sim(w, pref_ij, test_point_cuttoffs=[.9,1,1.5,2,2.1,2.5,3,3.1,3.9],
-        choice_function=gen_until_2_winners_borda)
-
+    plot_sim(w, pref_ij,
+             test_point_cuttoffs=[.9, 1, 1.5, 2, 2.1, 2.5, 3, 3.1, 3.9],
+             choice_function=gen_until_2_winners_borda)
 
     # Simulate all elections once
     pop = svvamp.PopulationVMFHypersphere(V=15000, C=15, vmf_concentration=4)
