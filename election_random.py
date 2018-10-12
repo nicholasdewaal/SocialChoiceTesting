@@ -138,7 +138,8 @@ def gen_until_2_winners_borda(ranked_weights, points_to_win=2.3,
     if len(ranked_weights) > 1:
         assert_weights_sound(ranked_weights)
         decay_rate = borda_decay ** (2 / (len(ranked_weights) - 1))
-    else:  # In order to allow for re-using this code for DeWaal_plurality
+    # In order to allow for re-using this code for multi_lottery_plurality
+    else:
         decay_rate = 1
         set_trace()
     ranges = [list(cumsum(weights)[0:-1]) for weights in ranked_weights]
@@ -203,7 +204,7 @@ def get_pairoff_winner(two_candidates, pref_ij):
     return primary_winners[1]
 
 
-def DeWaal_borda(pref_ballots, points_to_win=2.3, borda_decay=.5,
+def multi_lottery_borda(pref_ballots, points_to_win=2.3, borda_decay=.5,
                  pref_ij=None, n_pref_by_rank=None):
     '''
     Returns (set of primary winners (2), finals winner)
@@ -215,7 +216,7 @@ def DeWaal_borda(pref_ballots, points_to_win=2.3, borda_decay=.5,
     return win2_set, get_pairoff_winner(win2_set, pref_ij)
 
 
-def DeWaal_plurality(pref_ballots, points_to_win=2,
+def multi_lottery_plurality(pref_ballots, points_to_win=2,
                      pref_ij=None, n_pref_by_rank=None):
     '''
     Returns (set of primary winners (2), finals winner)
@@ -227,12 +228,12 @@ def DeWaal_plurality(pref_ballots, points_to_win=2,
     return win2_set, get_pairoff_winner(win2_set, pref_ij)
 
 
-def simulate_DeWaal(weights, pref_ij, num_sim_per_weight=1000,
-                    n_pts_win=2, choice_func=DeWaal_borda):
+def simulate_multi_lottery(weights, pref_ij, num_sim_per_weight=1000,
+                    n_pts_win=2, choice_func=multi_lottery_borda):
 
     assert_weights_sound(ranked_weights)
 
-    if choice_func == DeWaal_borda:
+    if choice_func == multi_lottery_borda:
         assert len(weights) == len(weights[0])
 
     # More simulations per weight are helpful for more candidate weights
@@ -278,7 +279,7 @@ def simulate_DeWaal(weights, pref_ij, num_sim_per_weight=1000,
 
 
 def plot_sim(weights, pref_ij, test_point_cuttoffs=[1, 2, 3],
-             choice_function=DeWaal_borda):
+             choice_function=multi_lottery_borda):
 
     assert_weights_sound(ranked_weights)
     n_groups = len(weights)
@@ -295,7 +296,7 @@ def plot_sim(weights, pref_ij, test_point_cuttoffs=[1, 2, 3],
     for j, pts in enumerate(test_point_cuttoffs):
 
         freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness = \
-            simulate_DeWaal(weights, pref_ij, num_sim_per_weight,
+            simulate_multi_lottery(weights, pref_ij, num_sim_per_weight,
                             n_pts_win=pts, choice_function=choice_function)
         print("avg_happiness: ", avg_happiness)
         # print("happiness_distr: ", happiness_freqs)
@@ -385,21 +386,21 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
     results['plurality'] = svvamp.Plurality(pop_object).w
     # Like IRV, but elim most low rank
     results['coombs'] = svvamp.Coombs(pop_object).w
-    # DeWaals method simulated 1 times, in sim, average will show in end.
+    # multi_lottery method simulated 1 times, in sim, average will show in end.
 
-    _, results['dewaal_borda2'] = DeWaal_borda(pref_ballots, points_to_win=2,
+    _, results['dewaal_borda2'] = multi_lottery_borda(pref_ballots,
+        points_to_win=2, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
+    _, results['dewaal_bor2.3'] = multi_lottery_borda(pref_ballots,
                         pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-    _, results['dewaal_bor2.3'] = DeWaal_borda(pref_ballots,
-                        pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-    _, results['dewaal_borda3'] = DeWaal_borda(pref_ballots, points_to_win=3,
-                        pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-    _, results['dewaal_bor3.8'] = DeWaal_borda(pref_ballots, points_to_win=3.8,
-                        pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-    _, results['dewaal_borda5'] = DeWaal_borda(pref_ballots, points_to_win=5,
-                        pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-    _, results['dewaal_bord12'] = DeWaal_borda(pref_ballots, points_to_win=12,
-                        pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-    # _, results['dewaal_plurality'] = DeWaal_plurality(pref_ballots,
+    _, results['dewaal_borda3'] = multi_lottery_borda(pref_ballots,
+        points_to_win=3, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
+    _, results['dewaal_bor3.8'] = multi_lottery_borda(pref_ballots,
+        points_to_win=3.8, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
+    _, results['dewaal_borda5'] = multi_lottery_borda(pref_ballots,
+        points_to_win=5, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
+    _, results['dewaal_bord12'] = multi_lottery_borda(pref_ballots,
+        points_to_win=12, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
+    # _, results['dewaal_plurality'] = multi_lottery_plurality(pref_ballots,
     # pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
 
     return results
@@ -497,7 +498,7 @@ def iter_rand_pop_zipf(n_voters, n_candidates,
 
 if __name__ == "__main__":
 
-    # Simulate DeWaal_borda and plot
+    # Simulate multi_lottery_borda and plot
     votes = gen_ranked_preferences_zipf(n_candidates=10, n_voters=10000,
                                         zipf_param=1.2)
 
