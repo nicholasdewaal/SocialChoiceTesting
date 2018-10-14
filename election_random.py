@@ -86,7 +86,7 @@ def gen_pref_summaries(pref_ballots):  # Put into testing code to always check
     return n_pref_by_rank, n_pref_i_over_j
 
 
-def scale_utilities(in_utilities):
+def scale_utilities(in_utilities): #  not used?
     scaled_util = [(x - min(x)) / (max(x) - min(x)) for x in in_utilities]
     # scaled to get a percent total satisfaction of a population.
     # average happiness by candidate
