@@ -4,7 +4,7 @@ import irv_variants as irv
 import election_random as er
 import pytest
 from numpy import array, intc
-# to do: fix imports
+# to do: fix imports, create packages, __init__ files
 
 
 def test_get_weights_from_counts():
@@ -67,6 +67,52 @@ def test_gen_ranked_preferences_zipf():
 
 
 def test_social_util_by_cand():
-    ranked_weights =
-    social_util_by_cand(ranked_weights)
+    ranked_weights = [[0.1, 0.1, 0.3, 0.2, 0.3],
+                      [0.2, 0.1, 0.3, 0.2, 0.2],
+                      [0.2, 0.3, 0.1, 0.1, 0.3],
+                      [0.3, 0.4, 0.1, 0.0, 0.2],
+                      [0.2, 0.1, 0.2, 0.5, 0.0]]
+    u = social_util_by_cand(ranked_weights)
+    assert u[4] == 1
+    assert u[0] > u[1]
+    ranked_weights = [[0.1, 0.9],
+                      [0.9, 0.1]]
+    u = social_util_by_cand(ranked_weights)
+    assert u[0] < u[1]
+    assert u[1] == 1
+
+    ranked_weights = [[1.0, 0.0, 0.0],
+                      [0.0, 0.5, 0.5],
+                      [0.0, 0.5, 0.5]]
+    u = social_util_by_cand(ranked_weights)
+    assert u == {0: 1.0, 1: 0.375, 2: 0.375}
+    u = social_util_by_cand(ranked_weights, .999999999)
+    for k, v in u.values():
+        assert abs(v - 1) < .001
+    u = social_util_by_cand(ranked_weights, 0.00000001)
+        assert u[0] == 1
+        assert u[1] < .0001
+        assert u[2] < .0001
+
+    ranked_weights = [[1.0, 0.0, 0.0],
+                      [0.0, 1.0, 0.0],
+                      [0.0, 0.0, 1.0]]
+    for v in [0.1, 0.2, .3, .4, .5, .6, .7, .8, .9]:
+        u = social_util_by_cand(ranked_weights)
+        assert u[1] == v
+        assert u[0] == 1
+
+
+def test_get_pairoff_winner():
+    pref_ij = [[1, 2, 3, 4, 5],
+               [1, 2, 3, 4, 5],
+               [1, 2, 3, 4, 5],
+               [1, 2, 3, 4, 5],
+               [1, 2, 3, 4, 5]]
+    for i in range(4):
+        assert get_pairoff_winner({i, i+1}, pref_ij) == i
+
+    assert get_pairoff_winner({0, 4}, pref_ij) == 4
+
+
 

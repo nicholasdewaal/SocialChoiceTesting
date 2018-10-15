@@ -101,7 +101,7 @@ def social_util_by_cand(ranked_weights, fraction_happy_decay=.5):
     assert_weights_sound(ranked_weights)
     assert fraction_happy_decay < 1 and fraction_happy_decay > 0
 
-    # we want the middle preferred candidate to be fraction_happy_decay
+    # we want the average preferred candidate to be fraction_happy_decay
     # as desirable as the best choice. Solve for fraction_happy_decay:
     # decay_rate ** ((L-1) / 2) = fraction_happy_decay
 
