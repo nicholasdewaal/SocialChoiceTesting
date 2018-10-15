@@ -18,8 +18,8 @@ def test_get_weights_from_counts():
                     [3, 0, 1, 4, 2],
                     [3, 2, 4, 1, 0],
                     [2, 0, 4, 1, 3]]
-    counts, _ = gen_pref_summaries(pref_ballots)
-    w = get_weights_from_counts(counts)
+    counts, _ = er.gen_pref_summaries(pref_ballots)
+    w = er.get_weights_from_counts(counts)
     wt = list(zip(*w))
 
     sums = [sum(b) for b in w]
@@ -41,7 +41,7 @@ def test_gen_pref_summaries():
         pref_ballots = pop.preferences_rk.tolist()
         p = array(pref_ballots, dtype=intc)
         r1, r2 = c_gen_pref_summaries(np_counts)
-        t1, t2 = gen_pref_summaries(pref_ballots)
+        t1, t2 = er.gen_pref_summaries(pref_ballots)
         assert t1 == r1
         assert t2 == r2
 
@@ -49,7 +49,7 @@ def test_gen_pref_summaries():
 def test_gen_weights_zipf():
 
     for n in [5, 10, 100, 1000]:
-        x = gen_weights_zipf(n)
+        x = er.gen_weights_zipf(n)
         assert len(x) == n
         assert abs(sum(x) - 1) < .0001
     # add test for distribution?
@@ -58,7 +58,7 @@ def test_gen_weights_zipf():
 def test_gen_ranked_preferences_zipf():
 
     for n_candidates in [5, 15, 200, 1000]:
-        ballots = gen_ranked_preferences_zipf(n_candidates, 5)
+        ballots = er.gen_ranked_preferences_zipf(n_candidates, 5)
         assert len(ballots) == n_candidates
         assert len(ballots[0]) == n_voters
         for b in ballots:
@@ -72,24 +72,24 @@ def test_social_util_by_cand():
                       [0.2, 0.3, 0.1, 0.1, 0.3],
                       [0.3, 0.4, 0.1, 0.0, 0.2],
                       [0.2, 0.1, 0.2, 0.5, 0.0]]
-    u = social_util_by_cand(ranked_weights)
+    u = er.social_util_by_cand(ranked_weights)
     assert u[4] == 1
     assert u[0] > u[1]
     ranked_weights = [[0.1, 0.9],
                       [0.9, 0.1]]
-    u = social_util_by_cand(ranked_weights)
+    u = er.social_util_by_cand(ranked_weights)
     assert u[0] < u[1]
     assert u[1] == 1
 
     ranked_weights = [[1.0, 0.0, 0.0],
                       [0.0, 0.5, 0.5],
                       [0.0, 0.5, 0.5]]
-    u = social_util_by_cand(ranked_weights)
+    u = er.social_util_by_cand(ranked_weights)
     assert u == {0: 1.0, 1: 0.375, 2: 0.375}
-    u = social_util_by_cand(ranked_weights, .999999999)
+    u = er.social_util_by_cand(ranked_weights, .999999999)
     for k, v in u.values():
         assert abs(v - 1) < .001
-    u = social_util_by_cand(ranked_weights, 0.00000001)
+    u = er.social_util_by_cand(ranked_weights, 0.00000001)
         assert u[0] == 1
         assert u[1] < .0001
         assert u[2] < .0001
@@ -98,7 +98,7 @@ def test_social_util_by_cand():
                       [0.0, 1.0, 0.0],
                       [0.0, 0.0, 1.0]]
     for v in [0.1, 0.2, .3, .4, .5, .6, .7, .8, .9]:
-        u = social_util_by_cand(ranked_weights)
+        u = er.social_util_by_cand(ranked_weights)
         assert u[1] == v
         assert u[0] == 1
 
@@ -110,9 +110,88 @@ def test_get_pairoff_winner():
                [1, 2, 3, 4, 5],
                [1, 2, 3, 4, 5]]
     for i in range(4):
-        assert get_pairoff_winner({i, i+1}, pref_ij) == i
+        assert er.get_pairoff_winner({i, i+1}, pref_ij) == i
 
-    assert get_pairoff_winner({0, 4}, pref_ij) == 4
+    assert er.get_pairoff_winner({0, 4}, pref_ij) == 4
+
+    pref_ij = [[5, 4, 3, 2, 1],
+               [5, 4, 3, 2, 1],
+               [5, 4, 3, 2, 1],
+               [5, 4, 3, 2, 1],
+               [5, 4, 3, 2, 1]]
+    for i in range(4):
+        assert er.get_pairoff_winner({i, i+1}, pref_ij) == i+1
+
+    assert er.get_pairoff_winner({0, 3}, pref_ij) == 0
 
 
+def test_gen_until_2_winners_borda():
+    # test that on numerous samples, not all the same result
+    pass
 
+
+def test_gen_until_2_winners_plurality():
+    # test that on numerous samples, not all the same result
+    pass
+
+
+def test_multi_lottery_borda():
+    # test that on numerous samples, not all the same result
+    pass
+
+
+def test_multi_lottery_plurality():
+    # test that on numerous samples, not all the same result
+    pass
+
+
+def standard_iter_tester(pop_iter):
+    n_voters = 20
+    n_candidates = 4
+    param = 5
+    if pop_iter == er.iter_rand_pop_zip:
+        it, _ = pop_iter(n_voters=n_voters, n_candidates=n_candidates)
+    else:
+        it, _ = pop_iter(n_voters=n_voters, n_candidates=n_candidates, param)
+    num_items = 0
+    for x in it:
+        num_items += 1
+        prefs = x.preferences_rk.tolist()
+        assert len(prefs) == n_voters
+        assert len(prefs[0]) == n_candidates
+        assert x.C == n_candidates
+        assert x.V == n_voters
+
+    if pop_iter == er.iter_rand_pop_zip:
+        pass
+
+    elif pop_iter == er.iter_rand_pop_gauss:
+        assert num_items == num_param * 3
+    else:
+        assert num_items == param
+
+def test_iter_rand_pop_polar():
+    standard_iter_tester(er.iter_rand_pop_polar)
+
+
+def test_iter_rand_pop_other():
+    standard_iter_tester(er.iter_rand_pop_other)
+
+
+def test_iter_rand_pop_zip():
+    standard_iter_tester(er.iter_rand_pop_zip)
+
+
+def test_iter_rand_pop_gauss():
+    standard_iter_tester(er.iter_rand_pop_zip)
+
+
+def test_iter_rand_pop_ladder():
+    standard_iter_tester(er.iter_rand_pop_ladder)
+
+
+# Now test all irv
+
+
+def test_irv():
+    pass
