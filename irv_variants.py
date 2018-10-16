@@ -2,6 +2,7 @@ from collections import defaultdict
 from ipdb import set_trace
 import tarjan as tr
 from pref_matrix.pref_matrix import c_gen_pref_summaries
+from numpy import intc, array
 
 
 # def copy_list_of_lists(in_list):  # much faster than deepcopy, not used now
@@ -15,8 +16,12 @@ class IRV_Variants():
         self._n_candidates = len(all_ballots[0])
         self._candidates = set(all_ballots[0])
         # _n_vote_i_to_j[i][j] = pct or # of votes for candidate i over j
-        self._n_vote_i_to_j = num_i_to_j if not(num_i_to_j is None) else \
-            pref_matrix.c_gen_pref_summaries(self._all_ballots)[1]
+        if num_i_to_j is None:
+            pref_ballots = array(self._all_ballots, dtype=intc)
+            self._n_vote_i_to_j = c_gen_pref_summaries(pref_ballots)[1]
+        else:
+            self._n_vote_i_to_j = num_i_to_j
+
         self._primary_smith_set = self.get_smith_set(self._candidates)
 
     def get_smith_set(self, candidates_to_check):

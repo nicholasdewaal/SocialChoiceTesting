@@ -192,6 +192,8 @@ def test_iter_rand_pop_ladder():
 
 # Now test all irv
 
+p = [[0, 1, 2], [1, 2, 0], [2, 0, 1]]
+hare_obj = irv.IRV_Variants(pref_ballots, num_i_to_j=pref_i_to_j)
 
 def test_irv():
     pass
