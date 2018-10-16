@@ -469,14 +469,14 @@ def iter_rand_pop_polar(n_voters, n_candidates, num_polarizations=5):
 def iter_rand_pop_other(n_voters, n_candidates, num_param=5):
     # do other data gen methods
     for _ in range(num_param):
-        pop = svvamp.PopulationSpheroid(V=num_voters, C=n_candidates)
+        pop = svvamp.PopulationSpheroid(V=n_voters, C=n_candidates)
         yield pop, num_param
 
 
 def iter_rand_pop_ladder(n_voters, n_candidates, ladder_rng=10):
 
     for n in range(ladder_rng):  # Neutral cultures
-        pop = svvamp.PopulationLadder(V=n_voters, C=n_candidates, nrungs=n)
+        pop = svvamp.PopulationLadder(V=n_voters, C=n_candidates, n_rungs=n)
         yield pop, ladder_rng
 
 
@@ -484,7 +484,7 @@ def iter_rand_pop_gauss(n_voters, n_candidates, num_param=5):
     # politcal spectrum:
     for shft in [-.5, 0, .5]: # later include more sigmas/shifts combined
         for i in range(1, num_param + 1):
-            pop = svvamp.PopulationGaussianWell(V=num_voters, C=n_candidates,
+            pop = svvamp.PopulationGaussianWell(V=n_voters, C=n_candidates,
                                                 sigma=[i], shift=[shft])
             gauss_vals = (shft, i)
     yield pop, gauss_vals

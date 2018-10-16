@@ -9,14 +9,19 @@ from numpy import intc, array
 #     return [y.copy() for y in in_list]
 
 def verify_ballots_legitimate(all_ballots):
+    set_trace()
     ball_vals = set(range(len(all_ballots[0])))
     for ballot in all_ballots:
-        if set(ballots) == ball_vals:
+        if set(ballot) == ball_vals:
             return False
     return True
 
 
 class IRV_Variants():
+    '''
+    These methods were developed according to the those described here:
+    http://www.votingmatters.org.uk/ISSUE29/I29P1.pdf
+    '''
 
     def __init__(self, all_ballots, num_i_to_j=None):
         assert max(max(x) for x in all_ballots) == len(all_ballots[0]) - 1
