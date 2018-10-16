@@ -196,6 +196,11 @@ def test_irv():
     p = [[0, 1, 2], [1, 2, 0], [2, 0, 1]]
     hare_obj = irv.IRV_Variants(p)
     assert hare_obj._primary_smith_set == {0, 1, 2}
+    assert hare_obj.hare() in {0, 1, 2}
+    assert hare_obj.benham_hare() in {0, 1, 2}
+    assert hare_obj.smith_hare() in {0, 1, 2}
+    assert hare_obj.tideman_hare() in {0, 1, 2}
+    assert hare_obj.woodall_hare() in {0, 1, 2}
 
     p = [*10 * [[0, 1, 2, 3]],
          [0, 2, 1, 3],

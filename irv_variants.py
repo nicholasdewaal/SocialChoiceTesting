@@ -8,10 +8,19 @@ from numpy import intc, array
 # def copy_list_of_lists(in_list):  # much faster than deepcopy, not used now
 #     return [y.copy() for y in in_list]
 
+def verify_ballots_legitimate(all_ballots):
+    ball_vals = set(range(len(all_ballots[0])))
+    for ballot in all_ballots:
+        if set(ballots) == ball_vals:
+            return False
+    return True
+
 
 class IRV_Variants():
 
     def __init__(self, all_ballots, num_i_to_j=None):
+        assert max(max(x) for x in all_ballots) == len(all_ballots[0]) - 1
+        assert verify_ballots_legitimate(all_ballots)
         self._all_ballots = all_ballots
         self._n_candidates = len(all_ballots[0])
         self._candidates = set(all_ballots[0])
@@ -28,6 +37,9 @@ class IRV_Variants():
         '''
         returns tuple of cycle elements
         '''
+        if len(candidates_to_check) == 1:
+            return set(candidates_to_check)
+
         graph = defaultdict(list)
         for i in candidates_to_check:
             for j in candidates_to_check:
@@ -47,14 +59,18 @@ class IRV_Variants():
         return smith_set
 
     def find_nxt_loser(self, existing_losers):
+
         counts = {i: 0 for i in set(self._all_ballots[0]) - existing_losers}
+        # if a candidate is in existing_losers, don't add to count since they
+        # have already been eliminated. Go to the next candidate on the ballot
+        # until you find a non-loser to augment their vote count.
         for ballot in self._all_ballots:
             for val in ballot:
                 if val not in existing_losers:
                     break
             counts[val] += 1
 
-        # Find a winner if there is one
+        # Find a winner if there is one that has more than 50% of the votes
         winner = None
         n_ballots = len(self._all_ballots)
         for k, v in counts.items():
@@ -69,6 +85,8 @@ class IRV_Variants():
         for candidate, value in counts.items():
             if value == min_counts:
                 losers.add(candidate)
+        if losers == self._candidates:
+            winner = losers.pop() # not all can be losers, pick any one then
 
         return winner, losers
 
@@ -104,7 +122,10 @@ class IRV_Variants():
         irv_rank, irv_set, losers, prev_losers = list(), set(), set(), set()
 
         while not self._primary_smith_set.issubset(irv_set):
-            _, losers, prev_losers = *self.find_nxt_loser(losers), losers
+            winner, losers, prev_losers = *self.find_nxt_loser(losers), losers
+            if losers==prev_losers and winner not in irv_set:
+                irv_rank.insert(0, winner)
+                irv_set.add(winner)
             for x in losers - prev_losers:
                 irv_rank.insert(0, x)
                 irv_set.add(x)
