@@ -47,7 +47,7 @@ class IRV_Variants():
         return smith_set
 
     def find_nxt_loser(self, existing_losers):
-        counts = defaultdict(int)
+        counts = {i: 0 for i in set(self._all_ballots[0]) - existing_losers}
         for ballot in self._all_ballots:
             for val in ballot:
                 if val not in existing_losers:
@@ -77,7 +77,7 @@ class IRV_Variants():
         Classic Instant Runoff Voting
         '''
         winner = None
-        while not winner:
+        while winner == None:
             winner, losers = self.find_nxt_loser(losers)
         return winner
 
@@ -131,7 +131,7 @@ class IRV_Variants():
         plurality loser.
         '''
         winner, losers = None, set()
-        while not winner:
+        while winner == None:
             remaining_candidates = self._candidates - losers
             smith_set = self.get_smith_set(remaining_candidates)
             if len(smith_set) == 1:

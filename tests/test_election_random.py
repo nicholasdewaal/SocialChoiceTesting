@@ -192,8 +192,22 @@ def test_iter_rand_pop_ladder():
 
 # Now test all irv
 
-p = [[0, 1, 2], [1, 2, 0], [2, 0, 1]]
-hare_obj = irv.IRV_Variants(pref_ballots, num_i_to_j=pref_i_to_j)
-
 def test_irv():
-    pass
+    p = [[0, 1, 2], [1, 2, 0], [2, 0, 1]]
+    hare_obj = irv.IRV_Variants(p)
+    assert hare_obj._primary_smith_set == {0, 1, 2}
+
+    p = [*10 * [[0, 1, 2, 3]],
+         [0, 2, 1, 3],
+         *9 * [[1, 2, 0, 3]],
+         [1, 0, 2, 3],
+         *8 * [[2, 0, 1, 3]],
+         [2, 1, 0, 3]]
+    hare_obj = irv.IRV_Variants(p)
+    assert hare_obj._primary_smith_set == {0, 1, 2}
+    assert hare_obj.hare() == 0
+    assert hare_obj.benham_hare() == 0
+    assert hare_obj.smith_hare() == 0
+    assert hare_obj.tideman_hare() == 0
+    assert hare_obj.woodall_hare() == 0
+
