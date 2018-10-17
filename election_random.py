@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 
 from addict import Dict
 from multiprocessing import Pool, cpu_count, Lock
@@ -231,7 +232,7 @@ def multi_lottery_plurality(pref_ballots, points_to_win=2,
 def simulate_multi_lottery(weights, pref_ij, num_sim_per_weight=1000,
                     n_pts_win=2, choice_func=multi_lottery_borda):
 
-    assert_weights_sound(ranked_weights)
+    assert_weights_sound(weights)
 
     if choice_func == multi_lottery_borda:
         assert len(weights) == len(weights[0])
@@ -278,16 +279,17 @@ def simulate_multi_lottery(weights, pref_ij, num_sim_per_weight=1000,
     return freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness
 
 
-def plot_sim(weights, pref_ij, test_point_cuttoffs=[1, 2, 3],
+def plot_sim(weights, pref_ij,
+             test_point_cuttoffs=[1, 1.1, 1.9, 2, 2.2, 2.9, 3],
              choice_function=multi_lottery_borda):
 
-    assert_weights_sound(ranked_weights)
-    n_groups = len(weights)
+    assert_weights_sound(weights)
+    n_candidates = len(weights)
 
     fig, ax = plt.subplots()
     fig.patch.set_facecolor('xkcd:gray')
     ax.set_facecolor((0.38, 0.34, 0.22))
-    index = arange(n_groups)
+    index = arange(n_candidates)
     bar_width = 0.75 / len(test_point_cuttoffs)
     opacity = 0.8
     colors = 'kbgrcmy'
@@ -297,7 +299,7 @@ def plot_sim(weights, pref_ij, test_point_cuttoffs=[1, 2, 3],
 
         freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness = \
             simulate_multi_lottery(weights, pref_ij, num_sim_per_weight,
-                            n_pts_win=pts, choice_function=choice_function)
+                            n_pts_win=pts, choice_func=choice_function)
         print("avg_happiness: ", avg_happiness)
         # print("happiness_distr: ", happiness_freqs)
         print("Final_winner: ", freq_finals_won)
@@ -309,7 +311,7 @@ def plot_sim(weights, pref_ij, test_point_cuttoffs=[1, 2, 3],
     plt.xlabel('Candidate')
     plt.ylabel('Probability of Winning Primary (2 Candidates will win)')
     plt.title('Scores by person, method=' + choice_function.__name__)
-    plt.xticks(index + bar_width, [str(x) for x in range(n_groups)])
+    plt.xticks(index + bar_width, [str(x) for x in range(n_candidates)])
     plt.legend()
 
     plt.tight_layout()
@@ -527,8 +529,8 @@ if __name__ == "__main__":
     # Simulate multi_lottery_borda and plot
     votes = gen_ranked_preferences_zipf(n_candidates=10, n_voters=10000,
                                         zipf_param=1.2)
-
-    n_preferred_by_rank, pref_ij = c_gen_pref_summaries(votes)
+    p = array(votes, dtype=intc)
+    n_preferred_by_rank, pref_ij = c_gen_pref_summaries(p)
     w = get_weights_from_counts(n_preferred_by_rank)
     all_happinesses = social_util_by_cand(w)
     plot_sim(w, pref_ij,
@@ -536,5 +538,5 @@ if __name__ == "__main__":
              choice_function=gen_until_2_winners_borda)
 
     # Simulate all elections once
-    pop = svvamp.PopulationVMFHypersphere(V=15000, C=15, vmf_concentration=4)
-    simulate_all_elections(pop)
+    # pop = svvamp.PopulationVMFHypersphere(V=15000, C=15, vmf_concentration=4)
+    # simulate_all_elections(pop)
