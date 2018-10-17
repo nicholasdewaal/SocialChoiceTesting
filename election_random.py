@@ -191,7 +191,7 @@ def gen_until_2_winners_borda(ranked_weights, points_to_win=2.3,
 
 def gen_until_2_winners_plurality(weights, points_to_win=2):
     '''
-    Plurality voting special case. weights are first choice only; not ranked.
+    Plurality voting special case. Weights are first choice only; not ranked.
     '''
     return gen_until_2_winners_borda([weights], points_to_win)
 
@@ -475,20 +475,20 @@ def iter_rand_pop_other(n_voters, n_candidates, num_param=5):
     This is an iterator that creates num_param populations of voters
     using PopulationSpheroid from the svvamp library.
     '''
-    for _ in range(num_param):
+    for i in range(num_param):
         pop = svvamp.PopulationSpheroid(V=n_voters, C=n_candidates)
-        yield pop, num_param
+        yield pop, i
 
 
 def iter_rand_pop_ladder(n_voters, n_candidates, ladder_rng=10):
     '''
     This is an iterator that creates ladder_rng populations of voters
-    using PopulationLadder from the svvamp library with n_rungs from 0 to
-    ladder_rng - 1.
+    using PopulationLadder from the svvamp library with n_rungs from 2 to
+    ladder_rng + 1.
     '''
-    for n in range(ladder_rng):  # Neutral cultures
+    for n in range(1, ladder_rng + 1):  # Neutral cultures
         pop = svvamp.PopulationLadder(V=n_voters, C=n_candidates, n_rungs=n)
-        yield pop, ladder_rng
+        yield pop, n
 
 
 def iter_rand_pop_gauss(n_voters, n_candidates, num_param=5):
@@ -504,7 +504,7 @@ def iter_rand_pop_gauss(n_voters, n_candidates, num_param=5):
             pop = svvamp.PopulationGaussianWell(V=n_voters, C=n_candidates,
                                                 sigma=[i], shift=[shft])
             gauss_vals = (shft, i)
-    yield pop, gauss_vals
+            yield pop, gauss_vals
 
 
 def iter_rand_pop_zipf(n_voters, n_candidates,

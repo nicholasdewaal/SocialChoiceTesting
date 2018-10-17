@@ -11,7 +11,7 @@ from numpy import intc, array
 def verify_ballots_legitimate(all_ballots):
     ball_vals = set(range(len(all_ballots[0])))
     for ballot in all_ballots:
-        if set(ballot) == ball_vals:
+        if set(ballot) != ball_vals:
             return False
     return True
 

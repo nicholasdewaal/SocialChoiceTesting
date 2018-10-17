@@ -154,23 +154,23 @@ def standard_iter_tester(pop_iter):
     n_candidates = 4
     param = 5
     if pop_iter == er.iter_rand_pop_zipf:
-        it, _ = pop_iter(n_voters, n_candidates)
+        it = pop_iter(n_voters, n_candidates)
     else:
-        it, _ = pop_iter(n_voters, n_candidates, param)
+        it = pop_iter(n_voters, n_candidates, param)
     num_items = 0
     for x in it:
         num_items += 1
-        prefs = x.preferences_rk.tolist()
+        prefs = x[0].preferences_rk.tolist()
         assert len(prefs) == n_voters
         assert len(prefs[0]) == n_candidates
-        assert x.C == n_candidates
-        assert x.V == n_voters
+        assert x[0].C == n_candidates
+        assert x[0].V == n_voters
 
     if pop_iter == er.iter_rand_pop_zipf:
         pass
 
     elif pop_iter == er.iter_rand_pop_gauss:
-        assert num_items == num_param * 3
+        assert num_items == param * 3
     else:
         assert num_items == param
 
