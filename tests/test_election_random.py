@@ -4,7 +4,7 @@ import irv_variants as irv
 import election_random as er
 import pytest
 from numpy import array, intc
-import svvamp
+from svvamp import PopulationSpheroid
 # to do: fix imports, create packages, __init__ files
 
 
@@ -38,7 +38,7 @@ def test_get_weights_from_counts():
 
 def test_gen_pref_summaries():
     for n in range(2, 7):
-        pop = svvamp.PopulationSpheroid(V=100*n, C=n)
+        pop = PopulationSpheroid(V=100*n, C=n)
         pref_ballots = pop.preferences_rk.tolist()
         p = array(pref_ballots, dtype=intc)
         r1, r2 = c_gen_pref_summaries(p)

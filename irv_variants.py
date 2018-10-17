@@ -9,7 +9,6 @@ from numpy import intc, array
 #     return [y.copy() for y in in_list]
 
 def verify_ballots_legitimate(all_ballots):
-    set_trace()
     ball_vals = set(range(len(all_ballots[0])))
     for ballot in all_ballots:
         if set(ballot) == ball_vals:
@@ -19,11 +18,19 @@ def verify_ballots_legitimate(all_ballots):
 
 class IRV_Variants():
     '''
-    These methods were developed according to the those described here:
-    http://www.votingmatters.org.uk/ISSUE29/I29P1.pdf
+    These social-choice functions were developed according to the methods
+    described here: http://www.votingmatters.org.uk/ISSUE29/I29P1.pdf
     '''
 
     def __init__(self, all_ballots, num_i_to_j=None):
+        '''
+        all_ballots is a list of ballots, each of which is a list of candidate
+        rankings.
+        Ballots are only legitimate if each candidate is numbered 0 to n - 1
+        where n is the number of candidates. Each ballot must have a full
+        ranking of the candidates with the index in the list being the rank of
+        the candidate for a given ballot.
+        '''
         assert max(max(x) for x in all_ballots) == len(all_ballots[0]) - 1
         assert verify_ballots_legitimate(all_ballots)
         self._all_ballots = all_ballots
@@ -40,7 +47,12 @@ class IRV_Variants():
 
     def get_smith_set(self, candidates_to_check):
         '''
-        returns tuple of cycle elements
+        This function returns a tuple of cycle elements
+        The Smith set is the largest set of candidates where no other
+        candidates outside such a set are preferred over those inside the set.
+        If the size of the Smith set is 1, then that is the Condorcet winner.
+        Otherwise there is no Condorcet winner.
+
         '''
         if len(candidates_to_check) == 1:
             return set(candidates_to_check)
@@ -64,6 +76,18 @@ class IRV_Variants():
         return smith_set
 
     def find_nxt_loser(self, existing_losers):
+        '''
+        Eliminate the next loser as the candidate with the fewest 1st-choice
+        votes that aren't already in the set of existing_losers.
+        Every candidate with the number of 1st-choice votes equal to the fewest
+        is added to the existing_losers set and returned as the loser set.
+
+        If there is a winner with over 50% of the 1st-choice votes, then the
+        winner is also returned.
+        If all candidates are losers by an all-way tie, then a miscellaneous
+        winner is chosen.
+
+        '''
 
         counts = {i: 0 for i in set(self._all_ballots[0]) - existing_losers}
         # if a candidate is in existing_losers, don't add to count since they
@@ -83,7 +107,7 @@ class IRV_Variants():
                 winner = k
                 break
 
-        # Find Candidates with the worst top vote counts, add to losers
+        # Find candidates with the worst top vote counts, add to losers
         min_candidate = min(counts, key=counts.get)
         min_counts = counts[min_candidate]
         losers = set(existing_losers)

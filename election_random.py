@@ -65,8 +65,8 @@ def assert_weights_sound(weights):
         assert abs(sum(column) - 1) < .0001
 
 
-def gen_pref_summaries(pref_ballots):  # Put into testing code to always check
-    # it matches cython code.
+def gen_pref_summaries(pref_ballots):  # used for testing code to always check
+    # it matches the cython code version.
     '''
     This function is slow. Use the Cython implementation in pref_matrix
     n_pref_by_rank: # voters who placed candidate (col idx) at rank (row idx)
@@ -457,7 +457,11 @@ def next_sim_iter(pop, param, lock, utils_by_scf, n_candidates, current_sim):
 
 
 def iter_rand_pop_polar(n_voters, n_candidates, num_polarizations=5):
-
+    '''
+    This is an iterator that creates num_polarizations populations of voters
+    each with a polarization from 0 to 3 * num_polarizations in incremements of
+    3 using PopulationVMFHypersphere from the svvamp library.
+    '''
     polarization_list = [3 * ii for ii in range(num_polarizations)]
     for polarization in polarization_list:
         # The Von-Mises Fisher model, which represents a polarized culture:
@@ -467,20 +471,33 @@ def iter_rand_pop_polar(n_voters, n_candidates, num_polarizations=5):
 
 
 def iter_rand_pop_other(n_voters, n_candidates, num_param=5):
-    # do other data gen methods
+    '''
+    This is an iterator that creates num_param populations of voters
+    using PopulationSpheroid from the svvamp library.
+    '''
     for _ in range(num_param):
         pop = svvamp.PopulationSpheroid(V=n_voters, C=n_candidates)
         yield pop, num_param
 
 
 def iter_rand_pop_ladder(n_voters, n_candidates, ladder_rng=10):
-
+    '''
+    This is an iterator that creates ladder_rng populations of voters
+    using PopulationLadder from the svvamp library with n_rungs from 0 to
+    ladder_rng - 1.
+    '''
     for n in range(ladder_rng):  # Neutral cultures
         pop = svvamp.PopulationLadder(V=n_voters, C=n_candidates, n_rungs=n)
         yield pop, ladder_rng
 
 
 def iter_rand_pop_gauss(n_voters, n_candidates, num_param=5):
+    '''
+    This is an iterator that creates 3 * num_param populations of voters
+    using PopulationGaussianWell from the svvamp library with a shift of
+    -.5, 0 and .5, with sigma from 1 to num_param. This should later be
+    modified to include far more combinations of ranges/shifts together.
+    '''
     # politcal spectrum:
     for shft in [-.5, 0, .5]: # later include more sigmas/shifts combined
         for i in range(1, num_param + 1):
@@ -492,6 +509,12 @@ def iter_rand_pop_gauss(n_voters, n_candidates, num_param=5):
 
 def iter_rand_pop_zipf(n_voters, n_candidates,
                        zipf_params=arange(1.05, 3.05, .12)):
+    '''
+    This is an iterator that creates populations of voters using
+    gen_ranked_preferences_zipf with the distribution of rank ordering of
+    ballots following a truncated zipf distribution with each parameter from
+    zipf_params associated with each iterated population of voters.
+    '''
     for zipf_param in zipf_params:  # Do for zipf sampled ballots
         ballots = gen_ranked_preferences_zipf(n_candidates, n_voters,
                                               zipf_param)
