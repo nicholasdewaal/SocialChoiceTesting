@@ -8,7 +8,7 @@ from collections import defaultdict
 from scipy.stats import zipf
 import matplotlib.pyplot as plt
 from ipdb import set_trace
-from functools import partial
+from functools import partial, lru_cache
 import svvamp
 import irv_variants
 from pref_matrix.pref_matrix import c_gen_pref_summaries
@@ -51,11 +51,13 @@ def gen_ranked_preferences_zipf(n_candidates, n_voters, zipf_param=1.1):
         shuffle(tmp_candidates)
         pref_ballot_samples.extend([tuple(tmp_candidates)] * m)
 
-    return pref_ballot_samples
+    return tuple(pref_ballot_samples)
 
 
+# @lru_cache(maxsize=32)
 def get_weights_from_counts(counts):
-    return [[count / sum(cnt_row) for count in cnt_row] for cnt_row in counts]
+    return tuple(tuple(count / sum(cnt_row) for count in cnt_row)
+                 for cnt_row in counts)
 
 
 def assert_weights_sound(weights):
@@ -121,6 +123,11 @@ def social_util_by_cand(ranked_weights, fraction_happy_decay=.5):
     return happiness
 
 
+@lru_cache(maxsize=32)
+def gen_ranges(ranked_weights):
+    return [list(cumsum(weights)[0:-1]) for weights in ranked_weights]
+
+
 def gen_until_2_winners_borda(ranked_weights, points_to_win=2.3,
                               borda_decay=.5):
     '''
@@ -143,7 +150,7 @@ def gen_until_2_winners_borda(ranked_weights, points_to_win=2.3,
     else:
         decay_rate = 1
         set_trace()
-    ranges = [list(cumsum(weights)[0:-1]) for weights in ranked_weights]
+    ranges = gen_ranges(ranked_weights)
     won_pts = defaultdict(int)
     win_set = set()
     n_current_winners = 0
@@ -206,40 +213,39 @@ def get_pairoff_winner(two_candidates, pref_ij):
 
 
 def multi_lottery_borda(pref_ballots, points_to_win=2.3, borda_decay=.5,
-                 pref_ij=None, n_pref_by_rank=None):
+                 pref_ij=None, n_pref_by_rank=None, weights=None):
     '''
     Returns (set of primary winners (2), finals winner)
     '''
-    if not(pref_ij is None) or not(n_pref_by_rank is None):
+    if (pref_ij is None) or (n_pref_by_rank is None):
         n_pref_by_rank, pref_ij = gen_pref_summaries(pref_ballots)
-    weights = get_weights_from_counts(n_pref_by_rank)
+    if weights is None:
+        weights = get_weights_from_counts(n_pref_by_rank)
     win2_set = gen_until_2_winners_borda(weights, points_to_win, borda_decay)
     return win2_set, get_pairoff_winner(win2_set, pref_ij)
 
 
 def multi_lottery_plurality(pref_ballots, points_to_win=2,
-                     pref_ij=None, n_pref_by_rank=None):
+                     pref_ij=None, n_pref_by_rank=None, weights=None):
     '''
     Returns (set of primary winners (2), finals winner)
     '''
     if not(pref_ij is None) or not(n_pref_by_rank is None):
         n_pref_by_rank, pref_ij = gen_pref_summaries(pref_ballots)
-    weights = get_weights_from_counts(n_pref_by_rank)[0]
+    if weights is None:
+        weights = get_weights_from_counts(n_pref_by_rank)[0]
     win2_set = gen_until_2_winners_plurality(weights, points_to_win)
     return win2_set, get_pairoff_winner(win2_set, pref_ij)
 
 
-def simulate_multi_lottery(weights, pref_ij, num_sim_per_weight=1000,
-                    n_pts_win=2, choice_func=multi_lottery_borda):
+def simulate_multi_lottery(pref_ballots, weights, n_pref_by_rank, pref_ij,
+                           num_sim_per_cand=1000, n_pts_win=2,
+                           choice_func=multi_lottery_borda):
 
-    assert_weights_sound(weights)
-
-    if choice_func == multi_lottery_borda:
-        assert len(weights) == len(weights[0])
-
-    # More simulations per weight are helpful for more candidate weights
+    # More simulations per candidate are helpful for more candidate weights
     # to provide statistical accuracy.
-    num_sim = num_sim_per_weight * len(weights)
+    n_candidates = len(pref_ballots[0])
+    num_sim = num_sim_per_cand * n_candidates
     current_sim = 0
     num_primaries_won = defaultdict(int)
     num_finals_won = defaultdict(int)
@@ -248,7 +254,9 @@ def simulate_multi_lottery(weights, pref_ij, num_sim_per_weight=1000,
 
     while current_sim < num_sim:  # Do num_sim simulated elections
         # Handle simulated primary elections
-        primary_winners, finals_winner = choice_func(pref_ballots, n_pts_win)
+        primary_winners, finals_winner = choice_func(pref_ballots, n_pts_win,
+                        borda_decay=.5, pref_ij=pref_ij,
+                        n_pref_by_rank=n_pref_by_rank, weights=weights)
         for winner in primary_winners:
             num_primaries_won[winner] += 1
         # Handle simulated final elections
@@ -279,7 +287,7 @@ def simulate_multi_lottery(weights, pref_ij, num_sim_per_weight=1000,
     return freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness
 
 
-def plot_sim(weights, pref_ij,
+def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij,
              test_point_cuttoffs=[1, 1.1, 1.9, 2, 2.2, 2.9, 3],
              choice_function=multi_lottery_borda):
 
@@ -293,16 +301,18 @@ def plot_sim(weights, pref_ij,
     bar_width = 0.75 / len(test_point_cuttoffs)
     opacity = 0.8
     colors = 'kbgrcmy'
-    num_sim_per_weight = 1500
+    num_sim_per_cand = 1500
 
     for j, pts in enumerate(test_point_cuttoffs):
 
         freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness = \
-            simulate_multi_lottery(weights, pref_ij, num_sim_per_weight,
-                            n_pts_win=pts, choice_func=choice_function)
+            simulate_multi_lottery(pref_ballots, weights, n_pref_by_rank,
+                                   pref_ij, num_sim_per_cand, n_pts_win=pts,
+                                   choice_func=choice_function)
+        print("\nFor %f points to win primary: \n"%pts)
         print("avg_happiness: ", avg_happiness)
         # print("happiness_distr: ", happiness_freqs)
-        print("Final_winner: ", freq_finals_won)
+        print("\nFinal_winner percentages won in simulation: ", freq_finals_won)
 
         primary_freqs = [freq_primry_won[ii] for ii in freq_primry_won]
         plt.bar(index + j * bar_width, primary_freqs, bar_width, alpha=opacity,
@@ -528,14 +538,14 @@ if __name__ == "__main__":
 
     # Simulate multi_lottery_borda and plot
     votes = gen_ranked_preferences_zipf(n_candidates=10, n_voters=10000,
-                                        zipf_param=1.2)
+                                        zipf_param=1.5)
     p = array(votes, dtype=intc)
-    n_preferred_by_rank, pref_ij = c_gen_pref_summaries(p)
-    w = get_weights_from_counts(n_preferred_by_rank)
+    n_pref_by_rank, pref_ij = c_gen_pref_summaries(p)
+    w = get_weights_from_counts(n_pref_by_rank)
     all_happinesses = social_util_by_cand(w)
-    plot_sim(w, pref_ij,
+    plot_sim(votes, w, n_pref_by_rank, pref_ij,
              test_point_cuttoffs=[.9, 1, 1.5, 2, 2.1, 2.5, 3, 3.1, 3.9],
-             choice_function=gen_until_2_winners_borda)
+             choice_function=multi_lottery_borda)
 
     # Simulate all elections once
     # pop = svvamp.PopulationVMFHypersphere(V=15000, C=15, vmf_concentration=4)

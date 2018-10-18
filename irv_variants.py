@@ -1,5 +1,4 @@
 from collections import defaultdict
-from ipdb import set_trace
 import tarjan as tr
 from pref_matrix.pref_matrix import c_gen_pref_summaries
 from numpy import intc, array
