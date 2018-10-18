@@ -2163,6 +2163,7 @@ static PyObject *__pyx_pf_11pref_matrix_c_gen_pref_summaries(CYTHON_UNUSED PyObj
  *                 n_pref_i_over_j[pref_ballots[i, j], pref_ballots[i, k]] += 1
  * 
  *     return asarray(n_pref_by_rank), asarray(n_pref_i_over_j)             # <<<<<<<<<<<<<<
+ *     # return tuple(map tuple, asarray(n_pref_by_rank)), tuple(map tuple, asarray(n_pref_i_over_j))
  */
   __Pyx_XDECREF(__pyx_r);
   __pyx_t_1 = __Pyx_GetModuleGlobalName(__pyx_n_s_asarray); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 23, __pyx_L1_error)

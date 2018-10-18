@@ -54,7 +54,7 @@ def gen_ranked_preferences_zipf(n_candidates, n_voters, zipf_param=1.1):
     return tuple(pref_ballot_samples)
 
 
-# @lru_cache(maxsize=32)
+@lru_cache(maxsize=32)
 def get_weights_from_counts(counts):
     return tuple(tuple(count / sum(cnt_row) for count in cnt_row)
                  for cnt_row in counts)
@@ -68,9 +68,28 @@ def assert_weights_sound(weights):
         assert abs(sum(column) - 1) < .0001
 
 
-def gen_pref_summaries(pref_ballots):  # used for testing code to always check
-    # it matches the cython code version.
+def tuplize(in_arr):
     '''
+    Convert numpy 2-D array to all tuples to allow for hashing in caching
+    '''
+    return tuple(tuple(x) for x in in_arr.to_list())
+
+
+def fast_gen_pref_summ(pref_ballots):
+    '''
+    A wrapper around the Cython function that sets up the data to the
+    appropriate data structure, and converts return values to tuples.
+    '''
+    p = array(pref_ballots, dtype=intc)
+    n_pref_rk, n_pref_ij = c_gen_pref_summaries(p)
+    # must return a tuple to be hashable for caching
+    return tuplize(n_pref_rk), tuplize(n_pref_ij)
+
+
+def gen_pref_summaries(pref_ballots):
+    '''
+    This function is used for testing code to always check it matches the
+    cython code version of use. Do not use except for testing.
     This function is slow. Use the Cython implementation in pref_matrix
     n_pref_by_rank: # voters who placed candidate (col idx) at rank (row idx)
     n_pref_i_over_j: # voters preferring candidate row i to candidate col j
@@ -213,27 +232,27 @@ def get_pairoff_winner(two_candidates, pref_ij):
 
 
 def multi_lottery_borda(pref_ballots, points_to_win=2.3, borda_decay=.5,
-                 pref_ij=None, n_pref_by_rank=None, weights=None):
+                 pref_ij=None, n_pref_by_rank=None):
     '''
     Returns (set of primary winners (2), finals winner)
     '''
     if (pref_ij is None) or (n_pref_by_rank is None):
-        n_pref_by_rank, pref_ij = gen_pref_summaries(pref_ballots)
-    if weights is None:
-        weights = get_weights_from_counts(n_pref_by_rank)
+        n_pref_by_rank, pref_ij = fast_gen_pref_summ(pref_ballots)
+    # get_weights_from_counts caches, so it's okay to repeat call
+    weights = get_weights_from_counts(n_pref_by_rank)
     win2_set = gen_until_2_winners_borda(weights, points_to_win, borda_decay)
     return win2_set, get_pairoff_winner(win2_set, pref_ij)
 
 
 def multi_lottery_plurality(pref_ballots, points_to_win=2,
-                     pref_ij=None, n_pref_by_rank=None, weights=None):
+                     pref_ij=None, n_pref_by_rank=None):
     '''
     Returns (set of primary winners (2), finals winner)
     '''
     if not(pref_ij is None) or not(n_pref_by_rank is None):
-        n_pref_by_rank, pref_ij = gen_pref_summaries(pref_ballots)
-    if weights is None:
-        weights = get_weights_from_counts(n_pref_by_rank)[0]
+        n_pref_by_rank, pref_ij = fast_gen_pref_summ(pref_ballots)
+    # get_weights_from_counts caches, so it's okay to repeat call
+    weights = get_weights_from_counts(n_pref_by_rank)[0]
     win2_set = gen_until_2_winners_plurality(weights, points_to_win)
     return win2_set, get_pairoff_winner(win2_set, pref_ij)
 
@@ -256,7 +275,7 @@ def simulate_multi_lottery(pref_ballots, weights, n_pref_by_rank, pref_ij,
         # Handle simulated primary elections
         primary_winners, finals_winner = choice_func(pref_ballots, n_pts_win,
                         borda_decay=.5, pref_ij=pref_ij,
-                        n_pref_by_rank=n_pref_by_rank, weights=weights)
+                        n_pref_by_rank=n_pref_by_rank)
         for winner in primary_winners:
             num_primaries_won[winner] += 1
         # Handle simulated final elections
@@ -377,8 +396,7 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
     set_trace()
     pref_ballots = pop_object.preferences_rk.tolist()
     if not(n_pref_by_rank and pref_i_to_j):
-        p = array(pop.preferences_rk, dtype=intc)
-        n_pref_by_rank, pref_i_to_j = c_gen_pref_summaries(p)
+        n_pref_by_rank, pref_i_to_j = fast_gen_pref_summ(pop.preferences_rk)
     results = dict()  # name each election type
     hare_obj = irv_variants.IRV_Variants(pref_ballots, num_i_to_j=pref_i_to_j)
     results['tideman_hare'] = hare_obj.tideman_hare()
@@ -439,8 +457,7 @@ def get_happinesses_by_method(pop_iterator, fast=False):
                                   current_sim=current_sim)
                 p.map(nxt_sim, pop_iterator(n_voters, n_candidates))
             # for pop in pop_iterator(n_voters, n_candidates):
-                # p = array(pop.preferences_rk, dtype=intc)
-                # n_pref_by_rank, pref_i_to_j = c_gen_pref_summaries(p)
+                # n_pref_by_rank, pref_i_to_j = fast_gen_pref_summ(pop.preferences_rk)
                 # weights = get_weights_from_counts(n_pref_by_rank)
                 # utils = social_util_by_cand(weights)
                 # winners_by_scf, param = simulate_all_elections(pop, fast=fast,
@@ -457,8 +474,7 @@ def get_happinesses_by_method(pop_iterator, fast=False):
 
 
 def next_sim_iter(pop, param, lock, utils_by_scf, n_candidates, current_sim):
-    p = array(pop.preferences_rk, dtype=intc)
-    n_pref_by_rank, pref_i_to_j = c_gen_pref_summaries(p)
+    n_pref_by_rank, pref_i_to_j = fast_gen_pref_summ(pop.preferences_rk)
     weights = get_weights_from_counts(n_pref_by_rank)
     utils = social_util_by_cand(weights)
     winners_by_scf = simulate_all_elections(pop, fast=fast,
@@ -540,7 +556,7 @@ if __name__ == "__main__":
     votes = gen_ranked_preferences_zipf(n_candidates=10, n_voters=10000,
                                         zipf_param=1.5)
     p = array(votes, dtype=intc)
-    n_pref_by_rank, pref_ij = c_gen_pref_summaries(p)
+    n_pref_by_rank, pref_ij = fast_gen_pref_summ(p)
     w = get_weights_from_counts(n_pref_by_rank)
     all_happinesses = social_util_by_cand(w)
     plot_sim(votes, w, n_pref_by_rank, pref_ij,

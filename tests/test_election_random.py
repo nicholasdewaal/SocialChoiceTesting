@@ -19,7 +19,7 @@ def test_get_weights_from_counts():
                     [3, 0, 1, 4, 2],
                     [3, 2, 4, 1, 0],
                     [2, 0, 4, 1, 3]]
-    counts, _ = er.gen_pref_summaries(pref_ballots)
+    counts, _ = er.fast_gen_pref_summ(pref_ballots)
     w = er.get_weights_from_counts(counts)
     wt = list(zip(*w))
 

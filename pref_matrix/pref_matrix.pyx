@@ -20,5 +20,5 @@ def c_gen_pref_summaries(int[:, :] pref_ballots):
             for k in range(j + 1, n_cand):
                 n_pref_i_over_j[pref_ballots[i, j], pref_ballots[i, k]] += 1
 
-    return np.asarray(n_pref_by_rank), np.asarray(n_pref_i_over_j)
+    return asarray(n_pref_by_rank), asarray(n_pref_i_over_j)
     # return tuple(map tuple, asarray(n_pref_by_rank)), tuple(map tuple, asarray(n_pref_i_over_j))
