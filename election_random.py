@@ -72,7 +72,7 @@ def tuplize(in_arr):
     '''
     Convert numpy 2-D array to all tuples to allow for hashing in caching
     '''
-    return tuple(tuple(x) for x in in_arr.to_list())
+    return tuple(tuple(x) for x in in_arr.tolist())
 
 
 def fast_gen_pref_summ(pref_ballots):
@@ -205,7 +205,7 @@ def gen_until_2_winners_borda(ranked_weights, points_to_win=2.3,
 
         for i, rng in enumerate(ranges):
             rn = uniform(0, 1)
-            next_win = sum(1 for x in rng if x < rn)
+            next_win = sum([1 for x in rng if x < rn])
             won_pts[next_win] += decay_rate ** i
             if won_pts[next_win] >= points_to_win and next_win not in win_set:
                 n_current_winners += 1
@@ -303,7 +303,13 @@ def simulate_multi_lottery(pref_ballots, weights, n_pref_by_rank, pref_ij,
     # in the simulation.
     avg_happiness = sum(h[0] * h[1] for h in happiness_freqs)
 
-    return freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness
+    return freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness, \
+        finals_social_happinesses
+
+
+def print_winnerpct_dict(in_dict):
+    for x, y in in_dict.items():
+        print('candidate ', x, ': ', round(100 * y, 1), '%')
 
 
 def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij,
@@ -324,14 +330,21 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij,
 
     for j, pts in enumerate(test_point_cuttoffs):
 
-        freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness = \
+        freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness, h = \
             simulate_multi_lottery(pref_ballots, weights, n_pref_by_rank,
                                    pref_ij, num_sim_per_cand, n_pts_win=pts,
                                    choice_func=choice_function)
-        print("\nFor %f points to win primary: \n"%pts)
-        print("avg_happiness: ", avg_happiness)
+        min_key = min(h, key=h.get)
+        min_val = round(100 * h[min_key], 1)
+        max_key = max(h, key=h.get)
+        max_val = round(100 * h[max_key], 1)
+        print("\nFor", pts, "points to win primary:", \
+        "avg_happiness =", round(100 * avg_happiness, 1), '%')
+        print('Worst societal happiness is candidate %d ='%min_key, min_val, '%')
+        print('Best societal happiness is candidate %d ='%max_key, max_val, '%')
         # print("happiness_distr: ", happiness_freqs)
-        print("\nFinal_winner percentages won in simulation: ", freq_finals_won)
+        print("Final_winner percentages won in simulation: ")
+        print_winnerpct_dict(freq_finals_won)
 
         primary_freqs = [freq_primry_won[ii] for ii in freq_primry_won]
         plt.bar(index + j * bar_width, primary_freqs, bar_width, alpha=opacity,
@@ -553,14 +566,15 @@ def iter_rand_pop_zipf(n_voters, n_candidates,
 if __name__ == "__main__":
 
     # Simulate multi_lottery_borda and plot
-    votes = gen_ranked_preferences_zipf(n_candidates=10, n_voters=10000,
+    votes = gen_ranked_preferences_zipf(n_candidates=6, n_voters=5000,
                                         zipf_param=1.5)
+    # try with various zipf_param, n_candidates, and points to win
     p = array(votes, dtype=intc)
     n_pref_by_rank, pref_ij = fast_gen_pref_summ(p)
     w = get_weights_from_counts(n_pref_by_rank)
     all_happinesses = social_util_by_cand(w)
     plot_sim(votes, w, n_pref_by_rank, pref_ij,
-             test_point_cuttoffs=[.9, 1, 1.5, 2, 2.1, 2.5, 3, 3.1, 3.9],
+             test_point_cuttoffs=[1, 1.5, 2, 2.1, 3, 3.5, 8, 20],
              choice_function=multi_lottery_borda)
 
     # Simulate all elections once
