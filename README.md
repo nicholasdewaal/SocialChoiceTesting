@@ -10,9 +10,11 @@
   This code runs with Python 3 only.  It is not compatible with Python 2.\*
 
   You can run this simulation by navigating to the folder with the file election_random.py, and executing:
+
   "python3 -O election_random.py"
 
   If you want to save the text output from the simulation, run:
+
   "python3 -O election_random.py &>> summary.txt"
 
 The license for using this software is GPL v3 as written in the included file License.txt.

@@ -414,7 +414,8 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, zipf_p,
 
     # plt.show()
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.suptitle('Happiness (0-1) frequencies by point threshold. Red is average happiness.')
+    plt.suptitle('Happiness (0-1) frequencies by point threshold.' +
+                 ' Red is average happiness.')
     plt.savefig(folder + '/Happiness_frequencies_final_winner_sim_' +
                 str(n_candidates) + '_candidates.png', dpi=500)
 
@@ -460,7 +461,7 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
     '''
     pref_ballots = pop_object.preferences_rk.tolist()
     if not(n_pref_by_rank and pref_i_to_j):
-        n_pref_by_rank, pref_i_to_j = fast_gen_pref_summ(pop.preferences_rk)
+        n_pref_by_rank, pref_i_to_j = fast_gen_pref_summ(pref_ballots)
     results = dict()  # name each election type
     hare_obj = irv_variants.IRV_Variants(pref_ballots, num_i_to_j=pref_i_to_j)
     results['tideman_hare'] = hare_obj.tideman_hare()
@@ -494,6 +495,8 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
         points_to_win=5, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
     _, results['dewaal_bord12'] = multi_lottery_borda(pref_ballots,
         points_to_win=12, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
+    _, results['dewaal_bord50'] = multi_lottery_borda(pref_ballots,
+        points_to_win=50, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
     # _, results['dewaal_plurality'] = multi_lottery_plurality(pref_ballots,
     # pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
 
@@ -510,23 +513,23 @@ def get_happinesses_by_method(pop_iterator, fast=False):
     test_num_candidates = [3, 4, 6, 9, 13, 18, 24]
 
     # modify each sim to run in parallel
-    set_trace()
     while current_sim < num_sim:
         # simulate for various numbers of candidates
         for n_candidates in test_num_candidates:
             n_voters = n_candidates * 750
-            with Pool(num_cpu) as p:  # parallelize, put -1 to save a cpu?
-                nxt_sim = partial(next_sim_iter, lock=lock,
-                                  utils_by_scf=utils_by_scf,
-                                  n_candidates=n_candidates,
-                                  current_sim=current_sim)
-                p.map(nxt_sim, pop_iterator(n_voters, n_candidates))
-            # for pop in pop_iterator(n_voters, n_candidates):
-                # n_pref_by_rank, pref_i_to_j = fast_gen_pref_summ(pop.preferences_rk)
-                # weights = get_weights_from_counts(n_pref_by_rank)
-                # utils = social_util_by_cand(weights)
-                # winners_by_scf, param = simulate_all_elections(pop, fast=fast,
-                # n_pref_by_rank=n_pref_by_rank, pref_i_to_j=pref_i_to_j)
+            set_trace()
+            # with Pool(num_cpu) as p:  # parallelize, put -1 to save a cpu?
+                # nxt_sim = partial(next_sim_iter, lock=lock, # Bug here!!
+                                  # utils_by_scf=utils_by_scf,
+                                  # n_candidates=n_candidates,
+                                  # current_sim=current_sim)
+                # p.map(nxt_sim, pop_iterator(n_voters, n_candidates))
+            for pop, param in pop_iterator(n_voters, n_candidates):
+                n_pref_by_rk, pref_ij = fast_gen_pref_summ(pop.preferences_rk)
+                weights = get_weights_from_counts(n_pref_by_rk)
+                utils = social_util_by_cand(weights)
+                winners_by_scf, param = simulate_all_elections(pop, fast=fast,
+                n_pref_by_rank=n_pref_by_rk, pref_i_to_j=pref_ij)
         current_sim += 1
 
     # now make dict of DataFrames by paramaters, n_candidates
@@ -538,12 +541,13 @@ def get_happinesses_by_method(pop_iterator, fast=False):
             # plot means by n_candidates, param
 
 
-def next_sim_iter(pop, param, lock, utils_by_scf, n_candidates, current_sim):
-    n_pref_by_rank, pref_i_to_j = fast_gen_pref_summ(pop.preferences_rk)
-    weights = get_weights_from_counts(n_pref_by_rank)
+def next_sim_iter(pop_n_param, lock, utils_by_scf, n_candidates, current_sim):
+    pop, param = pop_n_param
+    n_pref_by_rk, pref_ij = fast_gen_pref_summ(pop.preferences_rk)
+    weights = get_weights_from_counts(n_pref_by_rk)
     utils = social_util_by_cand(weights)
     winners_by_scf = simulate_all_elections(pop, fast=fast,
-        n_pref_by_rank=n_pref_by_rank, pref_i_to_j=pref_i_to_j)
+        n_pref_by_rank=n_pref_by_rk, pref_i_to_j=pref_ij)
     with lock:
         utils_by_scf[param][n_candidates][current_sim] = \
             {k: utils[v] for k, v in winners_by_scf.items()}
@@ -648,18 +652,22 @@ def main1():
 
 
 def main2():
-    pass
-    # pop_iterator =
-    # get_happinesses_by_method(pop_iterator, fast=True)
+    get_happinesses_by_method(iter_rand_pop_polar, fast=True)
 
 
-def main3():
-    pass
+def test_sim():
     # Simulate all elections once
-    # pop = svvamp.PopulationVMFHypersphere(V=15000, C=15, vmf_concentration=4)
-    # simulate_all_elections(pop)
+    pop = svvamp.PopulationVMFHypersphere(V=15000, C=15, vmf_concentration=2)
+    res = simulate_all_elections(pop)
+    s_keys = sorted(res.keys())
+    # for x, y in res.items():
+    max_len = len(max(s_keys, key=len))
+    for k in s_keys:
+        num_spc = max_len - len(k)
+        print(k, ':', num_spc * ' ', res[k])
 
 
 if __name__ == "__main__":
-    main1()
+    # main1()
     main2()
+    # test_sim()
