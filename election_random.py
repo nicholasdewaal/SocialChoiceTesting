@@ -316,6 +316,13 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij,
              test_point_cuttoffs=[1, 1.1, 1.9, 2, 2.2, 2.9, 3],
              choice_function=multi_lottery_borda):
 
+    '''
+    Plot the simulation of choice_func=multi_lottery_borda, or other
+    multi_lottery method given point cutoffs of test_point_cuttoffs.
+    Plots include distributions of happiness for multiple simulations of
+    elections, and frequencies of candidates surviving the primary election.
+    Plots are saved in the folder you run this function in.
+    '''
     assert_weights_sound(weights)
     n_candidates = len(weights)
 
@@ -370,7 +377,6 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij,
     num_rows = ceil(n / num_columns)
     ordered_keys = sorted(freq_history.keys())
 
-    # for pt_lim, happy_data in freq_history.items():
     for pt_lim in ordered_keys:
         happy_data = freq_history[pt_lim]
         plt.subplot(num_rows, num_columns, plot_num)
@@ -390,14 +396,6 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij,
     plt.suptitle('Happiness (0-1) frequencies by point threshold. Red is average happiness.')
     plt.savefig('Happiness_frequencies_final_winner_sim_' + str(n_candidates)
                 + '_candidates.png', dpi=500)
-
-
-    # to do!! plot avg happiness as a function of zipf, num_candidates,
-    # point_cutoff.
-    # plot happiness distributions
-    # plot freq_finals_won
-
-    # plt.savefig('election_plot.png')
 
 
 def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
