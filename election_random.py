@@ -15,6 +15,7 @@ from pref_matrix.pref_matrix import c_gen_pref_summaries
 from pandas import DataFrame
 from math import ceil
 import os
+import shutil
 
 
 def gen_weights_zipf(n_weights, zipf_param=1.13):
@@ -110,10 +111,10 @@ def gen_pref_summaries(pref_ballots):
     return n_pref_by_rank, n_pref_i_over_j
 
 
-def scale_utilities(in_utilities): #  not used?
+def scale_utilities(in_utilities):  # not used?
     scaled_util = [(x - min(x)) / (max(x) - min(x)) for x in in_utilities]
-    # scaled to get a percent total satisfaction of a population.
-    # average happiness by candidate
+    # Scaled to get a percent total satisfaction of a population.
+    # Average happiness by candidate
     return sum(scaled_util) / len(scaled_util)
 
 
@@ -233,7 +234,7 @@ def get_pairoff_winner(two_candidates, pref_ij):
 
 
 def multi_lottery_borda(pref_ballots, points_to_win=2.3, borda_decay=.5,
-                 pref_ij=None, n_pref_by_rank=None):
+                        pref_ij=None, n_pref_by_rank=None):
     '''
     Returns (set of primary winners (2), finals winner)
     '''
@@ -246,7 +247,7 @@ def multi_lottery_borda(pref_ballots, points_to_win=2.3, borda_decay=.5,
 
 
 def multi_lottery_plurality(pref_ballots, points_to_win=2,
-                     pref_ij=None, n_pref_by_rank=None):
+                            pref_ij=None, n_pref_by_rank=None):
     '''
     Returns (set of primary winners (2), finals winner)
     '''
@@ -367,16 +368,17 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, zipf_p,
         max_val = round(100 * h[max_key], 1)
         print('\nFor', pts, 'points to win primary, avg_happiness =',
               round(100 * avg_happiness, 1), '%, zipf_param=', zipf_p)
-        print('Worst societal happiness is candidate %d ='%min_key, min_val, '%')
-        print('Best societal happiness is candidate %d ='%max_key, max_val, '%')
+        print('Worst social happiness is candidate %d =' % min_key, min_val, '%')
+        print('Best social happiness is candidate %d =' % max_key, max_val, '%')
         # print("happiness_distr: ", happiness_freqs)
         print('Final_winner percentages won in simulation: ')
         print_winnerpct_dict(freq_finals_won)
 
         primary_freqs = [freq_primry_won[ii] for ii in freq_primry_won]
         try:
-            plt.bar(index + j * bar_width, primary_freqs, bar_width, alpha=opacity,
-                    color=colors[(j + 1) % len(colors)], label=str(pts) + ' points')
+            plt.bar(index + j * bar_width, primary_freqs, bar_width,
+                    alpha=opacity, color=colors[(j + 1) % len(colors)],
+                    label=str(pts) + ' points')
         except:
             set_trace()
 
@@ -387,8 +389,8 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, zipf_p,
     plt.legend()
 
     plt.tight_layout()
-    plt.savefig(folder + '/Percent_of_time_win_primaries_' + str(n_candidates)
-                + '_candidates.png', dpi=250)
+    plt.savefig(folder + '/Percent_of_time_win_primaries_' +
+                str(n_candidates) + '_candidates.png', dpi=250)
 
     plt.gcf().clear()
 
@@ -416,8 +418,8 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, zipf_p,
     # plt.show()
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.suptitle('Happiness (0-1) frequencies by point threshold. Red is average happiness.')
-    plt.savefig(folder + '/Happiness_frequencies_final_winner_sim_'
-                + str(n_candidates) + '_candidates.png', dpi=500)
+    plt.savefig(folder + '/Happiness_frequencies_final_winner_sim_' +
+                str(n_candidates) + '_candidates.png', dpi=500)
 
 
 def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
@@ -593,7 +595,7 @@ def iter_rand_pop_gauss(n_voters, n_candidates, num_param=5):
     modified to include far more combinations of ranges/shifts together.
     '''
     # politcal spectrum:
-    for shft in [-.5, 0, .5]: # later include more sigmas/shifts combined
+    for shft in [-.5, 0, .5]:  # later include more sigmas/shifts combined
         for i in range(1, num_param + 1):
             pop = svvamp.PopulationGaussianWell(V=n_voters, C=n_candidates,
                                                 sigma=[i], shift=[shft])
@@ -618,6 +620,21 @@ def iter_rand_pop_zipf(n_voters, n_candidates,
 
 if __name__ == "__main__":
 
+    # make new folder for saving old sims
+    done = False
+    num_attempts = 1
+    while not done:
+        try:
+            new_folder = 'Previous_sims (' + str(num_attempts) + ')'
+            os.mkdir(new_folder)
+            contents = os.listdir()
+            for val in contents:
+                if val.find('zipf_param=') != -1:  # yikes! High coupling.
+                    shutil.move(val, new_folder)
+            done = True
+        except:
+            num_attempts += 1
+
     # Simulate multi_lottery_borda and plot
     for zipf_p in [1.1, 1.2, 1.4, 1.8, 2.5]:
         for n in range(3, 11):
@@ -628,8 +645,8 @@ if __name__ == "__main__":
             n_pref_by_rank, pref_ij = fast_gen_pref_summ(p)
             w = get_weights_from_counts(n_pref_by_rank)
             plot_sim(votes, w, n_pref_by_rank, pref_ij, zipf_p,
-                    test_point_cuttoffs=[1, 1.5, 2, 2.1, 3, 3.5, 8, 20],
-                    choice_function=multi_lottery_borda)
+                     test_point_cuttoffs=[1, 1.5, 2, 2.1, 3, 3.5, 8, 20],
+                     choice_function=multi_lottery_borda)
 
     # Simulate all elections once
     # pop = svvamp.PopulationVMFHypersphere(V=15000, C=15, vmf_concentration=4)
