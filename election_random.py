@@ -15,7 +15,7 @@ from pref_matrix.pref_matrix import c_gen_pref_summaries
 from pandas import DataFrame
 from math import ceil
 import os
-import shutil
+from shutil import move
 
 
 def gen_weights_zipf(n_weights, zipf_param=1.13):
@@ -375,12 +375,9 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, zipf_p,
         print_winnerpct_dict(freq_finals_won)
 
         primary_freqs = [freq_primry_won[ii] for ii in freq_primry_won]
-        try:
-            plt.bar(index + j * bar_width, primary_freqs, bar_width,
-                    alpha=opacity, color=colors[(j + 1) % len(colors)],
-                    label=str(pts) + ' points')
-        except:
-            set_trace()
+        plt.bar(index + j * bar_width, primary_freqs, bar_width,
+                alpha=opacity, color=colors[(j + 1) % len(colors)],
+                label=str(pts) + ' points')
 
     plt.xlabel('Candidate')
     plt.ylabel('Probability of Winning Primary (2 Candidates will win)')
@@ -618,22 +615,23 @@ def iter_rand_pop_zipf(n_voters, n_candidates,
         yield pop, zipf_param
 
 
-if __name__ == "__main__":
-
+def main1():
     # make new folder for saving old sims
     done = False
     num_attempts = 1
-    while not done:
-        try:
-            new_folder = 'Previous_sims (' + str(num_attempts) + ')'
-            os.mkdir(new_folder)
-            contents = os.listdir()
-            for val in contents:
-                if val.find('zipf_param=') != -1:  # yikes! High coupling.
-                    shutil.move(val, new_folder)
-            done = True
-        except:
-            num_attempts += 1
+    contents = os.listdir()
+    name_str = 'zipf_param='  # yikes! High coupling to plot_sim.
+    if any([True for x in contents if x.find(name_str) != -1]):
+        while not done:
+            try:
+                new_folder = 'Previous_sims (' + str(num_attempts) + ')'
+                os.mkdir(new_folder)
+                for val in contents:
+                    if val.find(name_str) != -1:
+                        move(val, new_folder)
+                done = True
+            except:
+                num_attempts += 1
 
     # Simulate multi_lottery_borda and plot
     for zipf_p in [1.1, 1.2, 1.4, 1.8, 2.5]:
@@ -648,6 +646,20 @@ if __name__ == "__main__":
                      test_point_cuttoffs=[1, 1.5, 2, 2.1, 3, 3.5, 8, 20],
                      choice_function=multi_lottery_borda)
 
+
+def main2():
+    pass
+    # pop_iterator =
+    # get_happinesses_by_method(pop_iterator, fast=True)
+
+
+def main3():
+    pass
     # Simulate all elections once
     # pop = svvamp.PopulationVMFHypersphere(V=15000, C=15, vmf_concentration=4)
     # simulate_all_elections(pop)
+
+
+if __name__ == "__main__":
+    main1()
+    main2()
