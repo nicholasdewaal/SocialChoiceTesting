@@ -508,7 +508,7 @@ def get_happinesses_by_method(pop_iterator, fast=False):
 
     num_cpu = cpu_count()
     lock = Lock()
-    num_sim, current_sim = 1000, 0
+    num_sim, current_sim = 150, 0
     utils_by_scf = Dict()
     dataframe_dict = Dict()
     test_num_candidates = [3, 4, 6, 9, 13, 18, 24]
@@ -569,7 +569,7 @@ def get_happinesses_by_method(pop_iterator, fast=False):
         for n_cand, scf_by_sim_num in v_upper.items():
             dataframe_dict[param][n_cand] = DataFrame.from_dict(scf_by_sim_num,
                                                                 orient='index')
-            dataframe_dict[param][n_cand].boxplot()  # labels? by axis?
+            dataframe_dict[param][n_cand].boxplot(rot=90)  # labels? by axis?
             plt.tight_layout()
             plt.savefig("plot_p=" + str(param) + "_n_cand=" +
                         str(n_cand) + ".png")
