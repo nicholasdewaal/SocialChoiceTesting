@@ -508,7 +508,7 @@ def get_happinesses_by_method(pop_iterator, fast=False):
 
     num_cpu = cpu_count()
     lock = Lock()
-    num_sim, current_sim = 5, 0
+    num_sim, current_sim = 1000, 0
     utils_by_scf = Dict()
     dataframe_dict = Dict()
     test_num_candidates = [3, 4, 6, 9, 13, 18, 24]
