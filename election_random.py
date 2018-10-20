@@ -9,6 +9,7 @@ from scipy.stats import zipf
 import matplotlib.pyplot as plt
 from ipdb import set_trace
 from functools import partial, lru_cache
+from itertools import repeat
 import svvamp
 import irv_variants
 from pref_matrix.pref_matrix import c_gen_pref_summaries
@@ -514,22 +515,58 @@ def get_happinesses_by_method(pop_iterator, fast=False):
 
     # modify each sim to run in parallel
     while current_sim < num_sim:
+        print(current_sim)
         # simulate for various numbers of candidates
         for n_candidates in test_num_candidates:
             n_voters = n_candidates * 750
-            set_trace()
-            # with Pool(num_cpu) as p:  # parallelize, put -1 to save a cpu?
+
+            # IMPLEMENTATION 0 fails but would be faster / parallel.
+            # parallelize, put -1 to save a cpu to prevent freezing
+            # with Pool(num_cpu - 1) as p:
                 # nxt_sim = partial(next_sim_iter, lock=lock, # Bug here!!
                                   # utils_by_scf=utils_by_scf,
                                   # n_candidates=n_candidates,
-                                  # current_sim=current_sim)
+                                  # current_sim=current_sim,
+                                  # fast=fast)
                 # p.map(nxt_sim, pop_iterator(n_voters, n_candidates))
+
+            # IMPLEMENTATION 0 v2 fails but would be faster / parallel.
+            # parallelize, put -1 to save a cpu to prevent freezing
+            # pop_n_params = zip(pop_iterator(n_voters, n_candidates))
+            # with Pool(num_cpu - 1) as p:
+                # p.map(partial(next_sim_iter, lock=lock,
+                        # utils_by_scf=utils_by_scf, n_candidates=n_candidates,
+                        # current_sim=current_sim, fast=fast),
+                      # pop_iterator(n_voters, n_candidates))
+
+            # IMPLEMENTATION 1 uses too much memory but would be faster / parallel.
+            # m_args = [lock, utils_by_scf, n_candidates, current_sim, fast]
+            # with Pool(num_cpu - 1) as p:
+                # p.starmap(next_sim_iter, zip(*repeat(m_args),
+                          # pop_iterator(n_voters, n_candidates)))
+
+            # IMPLEMENTATION 2 tests next_sim_iter with partial
+            # (works!!! But slow.)
+            # for pop_n_param in pop_iterator(n_voters, n_candidates):
+                # nxt_sim = partial(next_sim_iter, lock=lock, # Bug here!!
+                                  # utils_by_scf=utils_by_scf,
+                                  # n_candidates=n_candidates,
+                                  # current_sim=current_sim,
+                                  # fast=fast)
+                # nxt_sim(pop_n_param)
+
+            # IMPLEMENTATION 3 tests next_sim_iter (works!!! But slow.)
+            # for pop_n_param in pop_iterator(n_voters, n_candidates):
+                # next_sim_iter(pop_n_param, lock, utils_by_scf, n_candidates,
+                              # current_sim, fast)
+
+            # IMPLEMENTATION 4 tests basic design (works!!! But slow.)
             for pop, param in pop_iterator(n_voters, n_candidates):
                 n_pref_by_rk, pref_ij = fast_gen_pref_summ(pop.preferences_rk)
                 weights = get_weights_from_counts(n_pref_by_rk)
                 utils = social_util_by_cand(weights)
-                winners_by_scf, param = simulate_all_elections(pop, fast=fast,
-                n_pref_by_rank=n_pref_by_rk, pref_i_to_j=pref_ij)
+                winners_by_scf = simulate_all_elections(pop, fast=fast,
+                    n_pref_by_rank=n_pref_by_rk, pref_i_to_j=pref_ij)
         current_sim += 1
 
     # now make dict of DataFrames by paramaters, n_candidates
@@ -541,7 +578,8 @@ def get_happinesses_by_method(pop_iterator, fast=False):
             # plot means by n_candidates, param
 
 
-def next_sim_iter(pop_n_param, lock, utils_by_scf, n_candidates, current_sim):
+def next_sim_iter(pop_n_param, lock, utils_by_scf, n_candidates, current_sim,
+                  fast):
     pop, param = pop_n_param
     n_pref_by_rk, pref_ij = fast_gen_pref_summ(pop.preferences_rk)
     weights = get_weights_from_counts(n_pref_by_rk)
