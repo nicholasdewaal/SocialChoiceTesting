@@ -3,7 +3,7 @@
 from addict import Dict
 from multiprocessing import Pool, cpu_count, Lock
 from numpy import cumsum, arange, array, intc
-from random import uniform, shuffle
+from random import uniform, shuffle, randint
 from collections import defaultdict
 from scipy.stats import zipf
 import matplotlib.pyplot as plt
@@ -234,6 +234,12 @@ def get_pairoff_winner(two_candidates, pref_ij):
     return primary_winners[1]
 
 
+def random_ballot(pref_ballots):
+    idx_winner = randint(0, len(pref_ballots) - 1)
+    winner = pref_ballots[idx_winner][0]
+    return winner
+
+
 def multi_lottery_borda(pref_ballots, points_to_win=2.3, borda_decay=.5,
                         pref_ij=None, n_pref_by_rank=None):
     '''
@@ -278,7 +284,7 @@ def simulate_multi_lottery(pref_ballots, weights, n_pref_by_rank, pref_ij,
     num_sim = num_sim_per_cand * n_candidates
     current_sim = 0
     num_primaries_won = {c: 0 for c in range(n_candidates)}
-    num_finals_won = defaultdict(int)
+    num_finals_won =  {c: 0 for c in range(n_candidates)}
     happiness_freqs = list()
     # return_tuple = namedtuple()
 
@@ -484,6 +490,7 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
     results['coombs'] = svvamp.Coombs(pop_object).w
     # multi_lottery method simulated 1 times, in sim, average will show in end.
 
+    results['random_ballot'] = random_ballot(pref_ballots)
     _, results['dewaal_borda2'] = multi_lottery_borda(pref_ballots,
         points_to_win=2, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
     _, results['dewaal_bor2.3'] = multi_lottery_borda(pref_ballots,
@@ -498,8 +505,12 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
         points_to_win=12, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
     _, results['dewaal_bord50'] = multi_lottery_borda(pref_ballots,
         points_to_win=50, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-    # _, results['dewaal_plurality'] = multi_lottery_plurality(pref_ballots,
-    # pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
+     _, results['dewaal_plura2'] = multi_lottery_plurality(pref_ballots, 2,
+     pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
+     _, results['dewaal_plura5'] = multi_lottery_plurality(pref_ballots, 5,
+     pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
+     _, results['dewaal_plur15'] = multi_lottery_plurality(pref_ballots, 15,
+     pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
 
     return results
 
@@ -563,6 +574,8 @@ def get_happinesses_by_method(pop_iterator, fast=False):
                     {k: utils[v] for k, v in winners_by_scf.items()}
         current_sim += 1
 
+    file_nm_prefix = 'plot_p='
+    archive_old_sims(file_nm_prefix, 'Previous_sims_all_methods')
     # utils_by_scf[pop_param][n_candidates][sim_number][scf]
     # now make dict of DataFrames by paramaters, n_candidates
     for param, v_upper in utils_by_scf.items():
@@ -571,7 +584,7 @@ def get_happinesses_by_method(pop_iterator, fast=False):
                                                                 orient='index')
             dataframe_dict[param][n_cand].boxplot(rot=90)  # labels? by axis?
             plt.tight_layout()
-            plt.savefig("plot_p=" + str(param) + "_n_cand=" +
+            plt.savefig(file_nm_prefix + str(param) + "_n_cand=" +
                         str(n_cand) + ".png")
             plt.gcf().clear()
             # To do: plot means by n_candidates, param
@@ -656,24 +669,26 @@ def iter_rand_pop_zipf(n_voters, n_candidates,
         yield pop, zipf_param
 
 
-def main1():
+def archive_old_sims(old_sim_subname, new_folder_name):
     # make new folder for saving old sims
     done = False
     num_attempts = 1
     contents = os.listdir()
-    name_str = 'zipf_param='  # yikes! High coupling to plot_sim.
-    if any([True for x in contents if x.find(name_str) != -1]):
+    if any([True for x in contents if x.find(old_sim_subname) != -1]):
         while not done:
             try:
-                new_folder = 'Previous_sims (' + str(num_attempts) + ')'
+                new_folder = new_folder_name + ' (' + str(num_attempts) + ')'
                 os.mkdir(new_folder)
                 for val in contents:
-                    if val.find(name_str) != -1:
+                    if val.find(old_sim_subname) != -1:
                         move(val, new_folder)
                 done = True
             except:
                 num_attempts += 1
 
+
+def main1():
+    archive_old_sims('zipf_param=', 'Previous_sims')
     # Simulate multi_lottery_borda and plot
     for zipf_p in [1.1, 1.2, 1.4, 1.8, 2.5]:
         for n in range(3, 11):
@@ -690,6 +705,7 @@ def main1():
 
 def main2():
     get_happinesses_by_method(iter_rand_pop_polar, fast=True)
+    get_happinesses_by_method(iter_rand_pop_zipf, fast=True)
 
 
 def test_sim():
