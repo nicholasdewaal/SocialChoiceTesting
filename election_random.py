@@ -508,7 +508,7 @@ def get_happinesses_by_method(pop_iterator, fast=False):
 
     num_cpu = cpu_count()
     lock = Lock()
-    num_sim, current_sim = 1500, 0
+    num_sim, current_sim = 5, 0
     utils_by_scf = Dict()
     dataframe_dict = Dict()
     test_num_candidates = [3, 4, 6, 9, 13, 18, 24]
@@ -520,17 +520,8 @@ def get_happinesses_by_method(pop_iterator, fast=False):
         for n_candidates in test_num_candidates:
             n_voters = n_candidates * 750
 
-            # IMPLEMENTATION 0 fails but would be faster / parallel.
-            # parallelize, put -1 to save a cpu to prevent freezing
-            # with Pool(num_cpu - 1) as p:
-                # nxt_sim = partial(next_sim_iter, lock=lock, # Bug here!!
-                                  # utils_by_scf=utils_by_scf,
-                                  # n_candidates=n_candidates,
-                                  # current_sim=current_sim,
-                                  # fast=fast)
-                # p.map(nxt_sim, pop_iterator(n_voters, n_candidates))
 
-            # IMPLEMENTATION 0 v2 fails but would be faster / parallel.
+            # IMPLEMENTATION 0 fails but would be faster / parallel.
             # parallelize, put -1 to save a cpu to prevent freezing
             # pop_n_params = zip(pop_iterator(n_voters, n_candidates))
             # with Pool(num_cpu - 1) as p:
@@ -567,15 +558,23 @@ def get_happinesses_by_method(pop_iterator, fast=False):
                 utils = social_util_by_cand(weights)
                 winners_by_scf = simulate_all_elections(pop, fast=fast,
                     n_pref_by_rank=n_pref_by_rk, pref_i_to_j=pref_ij)
+
+                utils_by_scf[param][n_candidates][current_sim] = \
+                    {k: utils[v] for k, v in winners_by_scf.items()}
         current_sim += 1
 
+    # utils_by_scf[pop_param][n_candidates][sim_number][scf]
     # now make dict of DataFrames by paramaters, n_candidates
-    for param, v_upper in utils_by_scf:
-        for k, v_lower in v_upper:
-            dataframe_dict[param][k] = DataFrame.from_dict(v)
-            dataframe_dict[param][k].boxplot()  # labels? by axis?
-            plt.savefig("plot_p=" + str(param) + "_n_cand=" + str(k) + ".png")
-            # plot means by n_candidates, param
+    for param, v_upper in utils_by_scf.items():
+        for n_cand, scf_by_sim_num in v_upper.items():
+            dataframe_dict[param][n_cand] = DataFrame.from_dict(scf_by_sim_num,
+                                                                orient='index')
+            dataframe_dict[param][n_cand].boxplot()  # labels? by axis?
+            plt.tight_layout()
+            plt.savefig("plot_p=" + str(param) + "_n_cand=" +
+                        str(n_cand) + ".png")
+            plt.gcf().clear()
+            # To do: plot means by n_candidates, param
 
 
 def next_sim_iter(pop_n_param, lock, utils_by_scf, n_candidates, current_sim,
