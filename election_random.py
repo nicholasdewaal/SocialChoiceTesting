@@ -382,17 +382,25 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, zipf_p,
         print_winnerpct_dict(freq_finals_won)
 
         primary_freqs = [freq_primry_won[ii] for ii in freq_primry_won]
+        finals_freqs = [freq_finals_won[ii] for ii in freq_finals_won]
+        plt.subplot(2, 1, 1)
         plt.bar(index + j * bar_width, primary_freqs, bar_width,
                 alpha=opacity, color=colors[(j + 1) % len(colors)],
                 label=str(pts) + ' points')
+        plt.xticks(index + bar_width, [str(x) for x in range(n_candidates)])
+        plt.ylabel('Probability of Winning Primary\n 2 winners')
+        plt.subplot(2, 1, 2)
+        plt.bar(index + j * bar_width, finals_freqs, bar_width,
+                alpha=opacity, color=colors[(j + 1) % len(colors)])
+                # label=str(pts) + ' points')
 
     plt.xlabel('Candidate')
-    plt.ylabel('Probability of Winning Primary (2 Candidates will win)')
-    plt.title('Scores by person, method=' + choice_function.__name__)
+    plt.ylabel('Probability of Winning Finals')
+    plt.suptitle('Scores by person, method=' + choice_function.__name__)
     plt.xticks(index + bar_width, [str(x) for x in range(n_candidates)])
     plt.legend()
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.savefig(folder + '/Percent_of_time_win_primaries_' +
                 str(n_candidates) + '_candidates.png', dpi=250)
 
@@ -491,25 +499,25 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
     # multi_lottery method simulated 1 times, in sim, average will show in end.
 
     results['random_ballot'] = random_ballot(pref_ballots)
-    _, results['dewaal_borda2'] = multi_lottery_borda(pref_ballots,
+    _, results['lottery_borda2'] = multi_lottery_borda(pref_ballots,
         points_to_win=2, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-    _, results['dewaal_bor2.3'] = multi_lottery_borda(pref_ballots,
+    _, results['lottery_bor2.3'] = multi_lottery_borda(pref_ballots,
                         pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-    _, results['dewaal_borda3'] = multi_lottery_borda(pref_ballots,
+    _, results['lottery_borda3'] = multi_lottery_borda(pref_ballots,
         points_to_win=3, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-    _, results['dewaal_bor3.8'] = multi_lottery_borda(pref_ballots,
+    _, results['lottery_bor3.8'] = multi_lottery_borda(pref_ballots,
         points_to_win=3.8, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-    _, results['dewaal_borda5'] = multi_lottery_borda(pref_ballots,
+    _, results['lottery_borda5'] = multi_lottery_borda(pref_ballots,
         points_to_win=5, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-    _, results['dewaal_bord12'] = multi_lottery_borda(pref_ballots,
+    _, results['lottery_bord12'] = multi_lottery_borda(pref_ballots,
         points_to_win=12, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-    _, results['dewaal_bord50'] = multi_lottery_borda(pref_ballots,
+    _, results['lottery_bord50'] = multi_lottery_borda(pref_ballots,
         points_to_win=50, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-    # _, results['dewaal_plura2'] = multi_lottery_plurality(pref_ballots, 2,
+    # _, results['lottery_plura2'] = multi_lottery_plurality(pref_ballots, 2,
         # pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-    # _, results['dewaal_plura5'] = multi_lottery_plurality(pref_ballots, 5,
+    # _, results['lottery_plura5'] = multi_lottery_plurality(pref_ballots, 5,
         # pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-    # _, results['dewaal_plur15'] = multi_lottery_plurality(pref_ballots, 15,
+    # _, results['lottery_plur15'] = multi_lottery_plurality(pref_ballots, 15,
         # pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
 
     return results
@@ -529,24 +537,22 @@ def get_happinesses_by_method(pop_iterator, fast=False):
         for n_candidates in test_num_candidates:
             n_voters = n_candidates * 750
 
-            # IMPLEMENTATION 1 parallel, can't pickle?? Why?
-            m_args = [utils_by_scf, n_candidates, current_sim, fast]
-            with pp.ProcessPool() as p:
-                # p.map(next_sim_iter, zip(repeat(current_sim),
-                                # [1,2,3,4,5,5,5,2,23,35,4,12,53,15,4]))
-                p.map(next_sim_iter, zip(repeat(m_args),
-                      pop_iterator(n_voters, n_candidates)))
+            # IMPLEMENTATION 1 parallel, issue calling cython?
+            # m_args = [utils_by_scf, n_candidates, current_sim, fast]
+            # with pp.ProcessPool() as p:
+                # p.map(next_sim_iter, zip(repeat(m_args),
+                      # pop_iterator(n_voters, n_candidates)))
 
             # IMPLEMENTATION 2 tests basic design (works!!! But slow.)
-            # for pop, param in pop_iterator(n_voters, n_candidates):
-                # n_pref_by_rk, pref_ij = fast_gen_pref_summ(pop.preferences_rk)
-                # weights = get_weights_from_counts(n_pref_by_rk)
-                # utils = social_util_by_cand(weights)
-                # winners_by_scf = simulate_all_elections(pop, fast=fast,
-                    # n_pref_by_rank=n_pref_by_rk, pref_i_to_j=pref_ij)
+            for pop, param in pop_iterator(n_voters, n_candidates):
+                n_pref_by_rk, pref_ij = fast_gen_pref_summ(pop.preferences_rk)
+                weights = get_weights_from_counts(n_pref_by_rk)
+                utils = social_util_by_cand(weights)
+                winners_by_scf = simulate_all_elections(pop, fast=fast,
+                    n_pref_by_rank=n_pref_by_rk, pref_i_to_j=pref_ij)
 
-                # utils_by_scf[param][n_candidates][current_sim] = \
-                    # {k: utils[v] for k, v in winners_by_scf.items()}
+                utils_by_scf[param][n_candidates][current_sim] = \
+                    {k: utils[v] for k, v in winners_by_scf.items()}
         current_sim += 1
     dir_nm_prefix = 'Population_type_sim='
     archive_old_sims(dir_nm_prefix, 'Previous_sims_all_methods')
@@ -700,6 +706,6 @@ def test_sim():
 
 
 if __name__ == "__main__":
-    # main1()
+    main1()
     main2()
     # test_sim()
