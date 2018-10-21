@@ -9,6 +9,10 @@
 
   This code runs with Python 3 only.  It is not compatible with Python 2.\*
 
+  All simulations assume results based upon completely sincere voting which is never true in theory except for the random ballot. Most social-choice functions are easier than others to manipulate: https://www.rangevoting.org/mani-focs.pdf
+
+  The purpose of this simulation is to compare social-choice functions with must better resistance to manipulation to more popular functions under ideal circumstances to consider how much potential loss comes from decreasing manipulability.
+
   You can run this simulation by navigating to the folder with the file election_random.py, and executing:
 
   "python3 -O election_random.py"

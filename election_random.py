@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from addict import Dict
-from multiprocessing import Pool, cpu_count, Lock
+import pathos.pools as pp
 from numpy import cumsum, arange, array, intc
 from random import uniform, shuffle, randint
 from collections import defaultdict
@@ -505,20 +505,18 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
         points_to_win=12, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
     _, results['dewaal_bord50'] = multi_lottery_borda(pref_ballots,
         points_to_win=50, pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-     _, results['dewaal_plura2'] = multi_lottery_plurality(pref_ballots, 2,
-     pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-     _, results['dewaal_plura5'] = multi_lottery_plurality(pref_ballots, 5,
-     pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
-     _, results['dewaal_plur15'] = multi_lottery_plurality(pref_ballots, 15,
-     pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
+    # _, results['dewaal_plura2'] = multi_lottery_plurality(pref_ballots, 2,
+        # pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
+    # _, results['dewaal_plura5'] = multi_lottery_plurality(pref_ballots, 5,
+        # pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
+    # _, results['dewaal_plur15'] = multi_lottery_plurality(pref_ballots, 15,
+        # pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank)
 
     return results
 
 
 def get_happinesses_by_method(pop_iterator, fast=False):
 
-    num_cpu = cpu_count()
-    lock = Lock()
     num_sim, current_sim = 150, 0
     utils_by_scf = Dict()
     dataframe_dict = Dict()
@@ -531,76 +529,53 @@ def get_happinesses_by_method(pop_iterator, fast=False):
         for n_candidates in test_num_candidates:
             n_voters = n_candidates * 750
 
+            # IMPLEMENTATION 1 parallel, can't pickle?? Why?
+            m_args = [utils_by_scf, n_candidates, current_sim, fast]
+            with pp.ProcessPool() as p:
+                # p.map(next_sim_iter, zip(repeat(current_sim),
+                                # [1,2,3,4,5,5,5,2,23,35,4,12,53,15,4]))
+                p.map(next_sim_iter, zip(repeat(m_args),
+                      pop_iterator(n_voters, n_candidates)))
 
-            # IMPLEMENTATION 0 fails but would be faster / parallel.
-            # parallelize, put -1 to save a cpu to prevent freezing
-            # pop_n_params = zip(pop_iterator(n_voters, n_candidates))
-            # with Pool(num_cpu - 1) as p:
-                # p.map(partial(next_sim_iter, lock=lock,
-                        # utils_by_scf=utils_by_scf, n_candidates=n_candidates,
-                        # current_sim=current_sim, fast=fast),
-                      # pop_iterator(n_voters, n_candidates))
+            # IMPLEMENTATION 2 tests basic design (works!!! But slow.)
+            # for pop, param in pop_iterator(n_voters, n_candidates):
+                # n_pref_by_rk, pref_ij = fast_gen_pref_summ(pop.preferences_rk)
+                # weights = get_weights_from_counts(n_pref_by_rk)
+                # utils = social_util_by_cand(weights)
+                # winners_by_scf = simulate_all_elections(pop, fast=fast,
+                    # n_pref_by_rank=n_pref_by_rk, pref_i_to_j=pref_ij)
 
-            # IMPLEMENTATION 1 uses too much memory but would be faster / parallel.
-            # m_args = [lock, utils_by_scf, n_candidates, current_sim, fast]
-            # with Pool(num_cpu - 1) as p:
-                # p.starmap(next_sim_iter, zip(*repeat(m_args),
-                          # pop_iterator(n_voters, n_candidates)))
-
-            # IMPLEMENTATION 2 tests next_sim_iter with partial
-            # (works!!! But slow.)
-            # for pop_n_param in pop_iterator(n_voters, n_candidates):
-                # nxt_sim = partial(next_sim_iter, lock=lock, # Bug here!!
-                                  # utils_by_scf=utils_by_scf,
-                                  # n_candidates=n_candidates,
-                                  # current_sim=current_sim,
-                                  # fast=fast)
-                # nxt_sim(pop_n_param)
-
-            # IMPLEMENTATION 3 tests next_sim_iter (works!!! But slow.)
-            # for pop_n_param in pop_iterator(n_voters, n_candidates):
-                # next_sim_iter(pop_n_param, lock, utils_by_scf, n_candidates,
-                              # current_sim, fast)
-
-            # IMPLEMENTATION 4 tests basic design (works!!! But slow.)
-            for pop, param in pop_iterator(n_voters, n_candidates):
-                n_pref_by_rk, pref_ij = fast_gen_pref_summ(pop.preferences_rk)
-                weights = get_weights_from_counts(n_pref_by_rk)
-                utils = social_util_by_cand(weights)
-                winners_by_scf = simulate_all_elections(pop, fast=fast,
-                    n_pref_by_rank=n_pref_by_rk, pref_i_to_j=pref_ij)
-
-                utils_by_scf[param][n_candidates][current_sim] = \
-                    {k: utils[v] for k, v in winners_by_scf.items()}
+                # utils_by_scf[param][n_candidates][current_sim] = \
+                    # {k: utils[v] for k, v in winners_by_scf.items()}
         current_sim += 1
-
-    file_nm_prefix = 'plot_p='
-    archive_old_sims(file_nm_prefix, 'Previous_sims_all_methods')
+    dir_nm_prefix = 'Population_type_sim='
+    archive_old_sims(dir_nm_prefix, 'Previous_sims_all_methods')
     # utils_by_scf[pop_param][n_candidates][sim_number][scf]
     # now make dict of DataFrames by paramaters, n_candidates
+    save_directory = dir_nm_prefix + pop_iterator.__name__
     for param, v_upper in utils_by_scf.items():
         for n_cand, scf_by_sim_num in v_upper.items():
             dataframe_dict[param][n_cand] = DataFrame.from_dict(scf_by_sim_num,
                                                                 orient='index')
             dataframe_dict[param][n_cand].boxplot(rot=90)  # labels? by axis?
             plt.tight_layout()
-            plt.savefig(file_nm_prefix + str(param) + "_n_cand=" +
-                        str(n_cand) + ".png")
+            os.mkdir(save_directory)
+            plt.savefig(save_directory + '/plot_p=' + str(param) +
+                        '_n_cand=' + str(n_cand) + '.png')
             plt.gcf().clear()
             # To do: plot means by n_candidates, param
 
 
-def next_sim_iter(pop_n_param, lock, utils_by_scf, n_candidates, current_sim,
-                  fast):
-    pop, param = pop_n_param
+def next_sim_iter(args):
+    utils_by_scf, n_candidates, current_sim, fast = args[0]
+    pop, param = args[1]
     n_pref_by_rk, pref_ij = fast_gen_pref_summ(pop.preferences_rk)
     weights = get_weights_from_counts(n_pref_by_rk)
     utils = social_util_by_cand(weights)
     winners_by_scf = simulate_all_elections(pop, fast=fast,
         n_pref_by_rank=n_pref_by_rk, pref_i_to_j=pref_ij)
-    with lock:
-        utils_by_scf[param][n_candidates][current_sim] = \
-            {k: utils[v] for k, v in winners_by_scf.items()}
+    utils_by_scf[param][n_candidates][current_sim] = \
+        {k: utils[v] for k, v in winners_by_scf.items()}
 
 
 def iter_rand_pop_polar(n_voters, n_candidates, num_polarizations=5):
@@ -706,6 +681,10 @@ def main1():
 def main2():
     get_happinesses_by_method(iter_rand_pop_polar, fast=True)
     get_happinesses_by_method(iter_rand_pop_zipf, fast=True)
+    get_happinesses_by_method(iter_rand_pop_gauss, fast=True)
+    get_happinesses_by_method(iter_rand_pop_other, fast=True)
+    get_happinesses_by_method(iter_rand_pop_polar, fast=True)
+    get_happinesses_by_method(iter_rand_pop_ladder, fast=True)
 
 
 def test_sim():
