@@ -1,115 +1,19 @@
 #!/usr/bin/env python3
 
 from addict import Dict
-import pathos.pools as pp
-from numpy import cumsum, arange, array, intc
-from random import uniform, shuffle, randint
+from numpy import arange, array, intc
 from collections import defaultdict
-from scipy.stats import zipf
 import matplotlib.pyplot as plt
 from ipdb import set_trace
-from functools import partial, lru_cache
-from itertools import repeat
 import svvamp
 import irv_variants
+import ballot_generators as bg
+import lottery_scfs as ls
 from pref_matrix.pref_matrix import c_gen_pref_summaries
 from pandas import DataFrame
 from math import ceil
 import os
 from shutil import move
-
-
-def gen_weights_zipf(n_weights, zipf_param=1.13):
-    '''
-    Generate first choice candidate preference frequencies among voters
-    assuming that prefence is zipf distributed. Truncate at n_weights total
-    candidates/frequencies.
-    '''
-    rv = zipf(zipf_param)
-    out_weights = [rv.pmf(j) for j in range(1, n_weights + 1)]
-    reweight_factor = sum(out_weights)
-    out_weights = [x / reweight_factor for x in out_weights]
-    return out_weights
-
-
-def gen_ranked_preferences_zipf(n_candidates, n_voters, zipf_param=1.1):
-    '''
-    Generate ranked choice candidate preference frequencies among voters
-    assuming that preference rankings are zipf distributed.
-    n_voters might need to be about 500 * n_candidates
-    '''
-    candidates = list(range(n_candidates))
-    pref_ballot_samples = list()
-
-    rv = zipf(zipf_param)
-    # zipf of index 0 doesn't exist, thus add 1: ii+1
-    scaler = sum(rv.pmf(ii + 1) for ii in range(n_voters))
-    n_prefs = [n_voters * rv.pmf(i + 1) / scaler for i in range(n_voters)]
-
-    # Generate random preference ordering according to zipf distributed samples
-    offset = 0
-    for n in n_prefs:
-        m = int(round(n + offset))
-        offset = n - m + offset
-        tmp_candidates = candidates.copy()
-        shuffle(tmp_candidates)
-        pref_ballot_samples.extend([tuple(tmp_candidates)] * m)
-
-    return tuple(pref_ballot_samples)
-
-
-@lru_cache(maxsize=32)
-def get_weights_from_counts(counts):
-    return tuple(tuple(count / sum(cnt_row) for count in cnt_row)
-                 for cnt_row in counts)
-
-
-def assert_weights_sound(weights):
-    # ranked_weights must be balanced sum to 100% along rows and columns
-    for row in weights:
-        assert abs(sum(row) - 1) < .0001
-    for column in zip(*weights):
-        assert abs(sum(column) - 1) < .0001
-
-
-def tuplize(in_arr):
-    '''
-    Convert numpy 2-D array to all tuples to allow for hashing in caching
-    '''
-    return tuple(tuple(x) for x in in_arr.tolist())
-
-
-def fast_gen_pref_summ(pref_ballots):
-    '''
-    A wrapper around the Cython function that sets up the data to the
-    appropriate data structure, and converts return values to tuples.
-    '''
-    p = array(pref_ballots, dtype=intc)
-    n_pref_rk, n_pref_ij = c_gen_pref_summaries(p)
-    # must return a tuple to be hashable for caching
-    return tuplize(n_pref_rk), tuplize(n_pref_ij)
-
-
-def gen_pref_summaries(pref_ballots):
-    '''
-    This function is used for testing code to always check it matches the
-    cython code version of use. Do not use except for testing.
-    This function is slow. Use the Cython implementation in pref_matrix
-    n_pref_by_rank: # voters who placed candidate (col idx) at rank (row idx)
-    n_pref_i_over_j: # voters preferring candidate row i to candidate col j
-    '''
-    N = len(pref_ballots[0])
-    n_pref_i_over_j = [N * [0] for _ in range(N)]
-    n_pref_by_rank = [N * [0] for _ in range(N)]
-
-    for pref_rank in pref_ballots:
-        for jj, ranked_val in enumerate(pref_rank):
-            n_pref_by_rank[jj][ranked_val] += 1
-            for c_less_pref in pref_rank[jj + 1:]:
-                n_pref_i_over_j[ranked_val][c_less_pref] += 1  # this line is
-                # half the cpu work
-
-    return n_pref_by_rank, n_pref_i_over_j
 
 
 def scale_utilities(in_utilities):  # not used?
@@ -124,7 +28,7 @@ def social_util_by_cand(ranked_weights, fraction_happy_decay=.5):
     Assume a multiplicative fractional utility decay for a voter
     by each drop in their preference ranking
     '''
-    assert_weights_sound(ranked_weights)
+    ls.assert_weights_sound(ranked_weights)
     assert fraction_happy_decay < 1 and fraction_happy_decay > 0
 
     # we want the average preferred candidate to be fraction_happy_decay
@@ -144,168 +48,6 @@ def social_util_by_cand(ranked_weights, fraction_happy_decay=.5):
     for x in happiness:
         happiness[x] = happiness[x] / max_happiness
     return happiness
-
-
-@lru_cache(maxsize=32)
-def gen_ranges(ranked_weights):
-    return [list(cumsum(weights)[0:-1]) for weights in ranked_weights]
-
-
-def gen_until_2_winners(pref_ballots, method='borda', borda_decay=.5,
-                        points_to_win=2.3):
-    '''
-    method = iterated_borda, borda, iterated_borda_decay, borda_decay, or
-    plurality
-    '''
-    won_pts = defaultdict(int)
-    win_set = set()
-    n_candidates = len(pref_ballots[0])
-    iter_num = 0
-    decay_rate = borda_decay ** (2 / (n_candidates - 1))
-
-    while len(win_set) < 2:
-        chosen_ballot = pref_ballots[randint(0, len(pref_ballots) - 1)]
-        i = iter_num % n_candidates
-        iter_num += 1
-
-        if method == 'plurality':
-            next_win = chosen_ballot[0]
-            won_pts[next_win] += 1
-
-        elif method == 'iterated_borda':
-            # iterate between ballots choosing 1st choice on the 1st ballot,
-            # the 2nd choice on the 2nd randomly chosen ballot, etc. until
-            # cycling back to the 1st choice assigning points according to
-            # borda count based on ballot rank.
-            next_win = chosen_ballot[i]
-            won_pts[next_win] += (n_candidates - i - 1) / (n_candidates - 1)
-
-        elif method == 'iterated_borda_decay':
-            next_win = chosen_ballot[i]
-            won_pts[next_win] += decay_rate ** i
-
-        if won_pts[next_win] >= points_to_win:
-            win_set.add(next_win)
-
-        for ii, x in enumerate(chosen_ballot):
-            if method == 'borda':
-                # 1st choice gets 1 point scaled down to 0 for the last
-                won_pts[x] += (n_candidates - ii - 1) / (n_candidates - 1)
-
-            if method == 'borda_decay':
-                won_pts[x] += decay_rate ** ii
-
-            if won_pts[x] >= points_to_win:
-                win_set.add(x)
-
-        if len(win_set) >= 2:
-            # Two winners with the most points that pass points_to_win
-            win_set = set(sorted(won_pts, key=won_pts.get)[:2])
-
-    return win_set
-
-
-def gen_until_2_winners_borda(ranked_weights, points_to_win=2.3,
-                              borda_decay=.5):
-    '''
-    borda_decay is the number of points assigned to a winner at the median
-    of a voter's ballot.
-    ranked_weights: Index=0 corresponds to the weights frequency of the
-    1st ranked choices of candidates by voters, index=1 corresponds to the
-    weights frequency of the 2nd ranked choices of candidates by voters,
-    etc.
-
-    Return value: the set of two primary election winners from index
-    1..num_candidates.
-    '''
-
-    assert borda_decay < 1 and borda_decay > 0
-    if len(ranked_weights) > 1:
-        assert_weights_sound(ranked_weights)
-        decay_rate = borda_decay ** (2 / (len(ranked_weights) - 1))
-    # In order to allow for re-using this code for multi_lottery_plurality
-    else:
-        decay_rate = 1
-    ranges = gen_ranges(ranked_weights)
-    won_pts = defaultdict(int)
-    win_set = set()
-    n_current_winners = 0
-
-    # Select 2 primary winners using a hybrid of Borda count, and a variation
-    # of the random ballot where randomly chosen ballots are selected, and a
-    # primary candidate is chosen one of the two winners if they win
-    # sufficiently many points from each randomly sampled ballot.
-
-    # The 1st ballot randomly chosen has that voter's 1st choice candidate
-    # receive 1 point.
-    # The 2st ballot randomly chosen has that voter's 2st choice candidate
-    # receive decay_rate ** 1 points.
-    #  ....
-    # The k-th ballot randomly chosen has that voter's k-th choice candidate
-    # receive decay_rate ** (k - 1) points.
-
-    # After the number of ballots is sampled reaches the number of
-    # ranks/candidates, the process is repeated until 2 primary winners emerge.
-
-    # The first 2 candidates to pass the threshold of points_to_win, win the
-    # primary to pass on to the final election.
-
-    while n_current_winners < 2:
-
-        # Select winners randomly with probability proportional to their
-        # number of votes ranked at level i preference, awarding
-        # points to that candidate according to the variation on Borda count
-        # described above.
-
-        # Candidates are indexed from 0 to the number of candidates-1 =
-        # len(ranked_weights)-1
-
-        for i, rng in enumerate(ranges):
-            rn = uniform(0, 1)
-            next_win = sum([1 for x in rng if x < rn])
-            won_pts[next_win] += decay_rate ** i
-            if won_pts[next_win] >= points_to_win and next_win not in win_set:
-                n_current_winners += 1
-                win_set.add(next_win)
-            if n_current_winners == 2:
-                break
-
-    return win_set
-
-
-def get_pairoff_winner(two_candidates, pref_ij):
-    primary_winners = list(two_candidates)
-    if pref_ij[primary_winners[0]][primary_winners[1]] > \
-            pref_ij[primary_winners[1]][primary_winners[0]]:
-        return primary_winners[0]
-    return primary_winners[1]
-
-
-def random_ballot(pref_ballots):
-    idx_winner = randint(0, len(pref_ballots) - 1)
-    winner = pref_ballots[idx_winner][0]
-    return winner
-
-
-def multi_lottery(pref_ballots, points_to_win=2.3, borda_decay=.5,
-                  pref_ij=None, n_pref_by_rank=None, method='borda'):
-    '''
-    Returns (set of primary winners (2), finals winner)
-    '''
-    # Attempt 1 is okay
-    # if (pref_ij is None) or (n_pref_by_rank is None):
-        # n_pref_by_rank, pref_ij = fast_gen_pref_summ(pref_ballots)
-    # # get_weights_from_counts caches, so it's okay to repeat call
-    # weights = get_weights_from_counts(n_pref_by_rank)
-    # win2_set = gen_until_2_winners_borda(weights, points_to_win, borda_decay)
-
-    # Attempt 2
-    if (pref_ij is None):
-        _, pref_ij = fast_gen_pref_summ(pref_ballots)
-    win2_set = gen_until_2_winners(pref_ballots, method=method,
-                                   points_to_win=points_to_win)
-
-    return win2_set, get_pairoff_winner(win2_set, pref_ij)
 
 
 def simulate_multi_lottery(pref_ballots, weights, n_pref_by_rank, pref_ij,
@@ -331,7 +73,7 @@ def simulate_multi_lottery(pref_ballots, weights, n_pref_by_rank, pref_ij,
 
     while current_sim < num_sim:  # Do num_sim simulated elections
         # Handle simulated primary elections
-        primary_winners, finals_winner = multi_lottery(pref_ballots, n_pts_win,
+        primary_winners, finals_winner = ls.multi_lottery(pref_ballots, n_pts_win,
                         borda_decay=.5, pref_ij=pref_ij,
                         n_pref_by_rank=n_pref_by_rank, method=method)
         for winner in primary_winners:
@@ -385,7 +127,7 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, zipf_p,
     the same election, and frequencies of candidates surviving the primary
     election. Plots are saved in the folder 'zipf_param={zipf_p}'.
     '''
-    assert_weights_sound(weights)
+    ls.assert_weights_sound(weights)
     n_candidates = len(weights)
 
     folder = 'zipf_param=' + str(zipf_p)
@@ -443,7 +185,7 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, zipf_p,
     plt.suptitle('Simulated wins by candidates 0-' + \
                  '%d using multi-lottery method='%(n_candidates - 1) + \
                  method + ' for each p points to win' + \
-                 'In order from most preferred to least.',
+                 ' in order from most preferred to least.',
                  fontsize=6)
     plt.xticks(index + bar_width, [str(x) for x in range(n_candidates)])
     plt.legend(loc='best', fontsize=5)
@@ -524,7 +266,7 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
     '''
     pref_ballots = pop_object.preferences_rk.tolist()
     if not(n_pref_by_rank and pref_i_to_j):
-        n_pref_by_rank, pref_i_to_j = fast_gen_pref_summ(pref_ballots)
+        n_pref_by_rank, pref_i_to_j = ls.fast_gen_pref_summ(pref_ballots)
     results = dict()  # name each election type
     hare_obj = irv_variants.IRV_Variants(pref_ballots, num_i_to_j=pref_i_to_j)
     results['tideman_hare'] = hare_obj.tideman_hare()
@@ -546,26 +288,26 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
     results['coombs'] = svvamp.Coombs(pop_object).w
     # multi_lottery method simulated 1 times, in sim, average will show in end.
 
-    results['random_ballot'] = random_ballot(pref_ballots)
-    _, results['lottery_borda2'] = multi_lottery(pref_ballots, 2,
+    results['random_ballot'] = ls.random_ballot(pref_ballots)
+    _, results['lottery_borda2'] = ls.multi_lottery(pref_ballots, 2,
         pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank, method='borda')
-    _, results['lottery_bor2.3'] = multi_lottery(pref_ballots, 2.3,
+    _, results['lottery_bor2.3'] = ls.multi_lottery(pref_ballots, 2.3,
         pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank, method='borda')
-    _, results['lottery_borda3'] = multi_lottery(pref_ballots, 3,
+    _, results['lottery_borda3'] = ls.multi_lottery(pref_ballots, 3,
         pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank, method='borda')
-    _, results['lottery_bor3.8'] = multi_lottery(pref_ballots, 3.8,
+    _, results['lottery_bor3.8'] = ls.multi_lottery(pref_ballots, 3.8,
         pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank, method='borda')
-    _, results['lottery_borda5'] = multi_lottery(pref_ballots, 5,
+    _, results['lottery_borda5'] = ls.multi_lottery(pref_ballots, 5,
         pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank, method='borda')
-    _, results['lottery_bord12'] = multi_lottery(pref_ballots, 12,
+    _, results['lottery_bord12'] = ls.multi_lottery(pref_ballots, 12,
         pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank, method='borda')
-    _, results['lottery_bord50'] = multi_lottery(pref_ballots, 50,
+    _, results['lottery_bord50'] = ls.multi_lottery(pref_ballots, 50,
         pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank, method='borda')
-    _, results['lottery_plura2'] = multi_lottery(pref_ballots, 2,
+    _, results['lottery_plura2'] = ls.multi_lottery(pref_ballots, 2,
         pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank, method='plurality')
-    _, results['lottery_plura5'] = multi_lottery(pref_ballots, 5,
+    _, results['lottery_plura5'] = ls.multi_lottery(pref_ballots, 5,
         pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank, method='plurality')
-    _, results['lottery_plur15'] = multi_lottery(pref_ballots, 15,
+    _, results['lottery_plur15'] = ls.multi_lottery(pref_ballots, 15,
         pref_ij=pref_i_to_j, n_pref_by_rank=n_pref_by_rank, method='plurality')
 
     return results
@@ -585,16 +327,9 @@ def get_happinesses_by_method(pop_iterator, fast=False):
         for n_candidates in test_num_candidates:
             n_voters = n_candidates * 750
 
-            # IMPLEMENTATION 1 parallel, issue calling cython?
-            # m_args = [utils_by_scf, n_candidates, current_sim, fast]
-            # with pp.ProcessPool() as p:
-                # p.map(next_sim_iter, zip(repeat(m_args),
-                      # pop_iterator(n_voters, n_candidates)))
-
-            # IMPLEMENTATION 2 tests basic design (works!!! But slow.)
             for pop, param in pop_iterator(n_voters, n_candidates):
-                n_pref_by_rk, pref_ij = fast_gen_pref_summ(pop.preferences_rk)
-                weights = get_weights_from_counts(n_pref_by_rk)
+                n_pref_by_rk, pref_ij = ls.fast_gen_pref_summ(pop.preferences_rk)
+                weights = ls.get_weights_from_counts(n_pref_by_rk)
                 utils = social_util_by_cand(weights)
                 winners_by_scf = simulate_all_elections(pop, fast=fast,
                     n_pref_by_rank=n_pref_by_rk, pref_i_to_j=pref_ij)
@@ -617,85 +352,6 @@ def get_happinesses_by_method(pop_iterator, fast=False):
             plt.savefig(save_directory + '/plot_p=' + str(param) +
                         '_n_cand=' + str(n_cand) + '.png')
             plt.gcf().clear()
-            # To do: plot means by n_candidates, param
-
-
-def next_sim_iter(args):
-    utils_by_scf, n_candidates, current_sim, fast = args[0]
-    pop, param = args[1]
-    n_pref_by_rk, pref_ij = fast_gen_pref_summ(pop.preferences_rk)
-    weights = get_weights_from_counts(n_pref_by_rk)
-    utils = social_util_by_cand(weights)
-    winners_by_scf = simulate_all_elections(pop, fast=fast,
-        n_pref_by_rank=n_pref_by_rk, pref_i_to_j=pref_ij)
-    utils_by_scf[param][n_candidates][current_sim] = \
-        {k: utils[v] for k, v in winners_by_scf.items()}
-
-
-def iter_rand_pop_polar(n_voters, n_candidates, num_polarizations=5):
-    '''
-    This is an iterator that creates num_polarizations populations of voters
-    each with a polarization from 0 to 3 * num_polarizations in incremements of
-    3 using PopulationVMFHypersphere from the svvamp library.
-    '''
-    polarization_list = [3 * ii for ii in range(num_polarizations)]
-    for polarization in polarization_list:
-        # The Von-Mises Fisher model, which represents a polarized culture:
-        pop = svvamp.PopulationVMFHypersphere(V=n_voters, C=n_candidates,
-                                              vmf_concentration=polarization)
-        yield pop, polarization
-
-
-def iter_rand_pop_other(n_voters, n_candidates, num_param=5):
-    '''
-    This is an iterator that creates num_param populations of voters
-    using PopulationSpheroid from the svvamp library.
-    '''
-    for i in range(num_param):
-        pop = svvamp.PopulationSpheroid(V=n_voters, C=n_candidates)
-        yield pop, i
-
-
-def iter_rand_pop_ladder(n_voters, n_candidates, ladder_rng=10):
-    '''
-    This is an iterator that creates ladder_rng populations of voters
-    using PopulationLadder from the svvamp library with n_rungs from 2 to
-    ladder_rng + 1.
-    '''
-    for n in range(1, ladder_rng + 1):  # Neutral cultures
-        pop = svvamp.PopulationLadder(V=n_voters, C=n_candidates, n_rungs=n)
-        yield pop, n
-
-
-def iter_rand_pop_gauss(n_voters, n_candidates, num_param=5):
-    '''
-    This is an iterator that creates 3 * num_param populations of voters
-    using PopulationGaussianWell from the svvamp library with a shift of
-    -.5, 0 and .5, with sigma from 1 to num_param. This should later be
-    modified to include far more combinations of ranges/shifts together.
-    '''
-    # politcal spectrum:
-    for shft in [-.5, 0, .5]:  # later include more sigmas/shifts combined
-        for i in range(1, num_param + 1):
-            pop = svvamp.PopulationGaussianWell(V=n_voters, C=n_candidates,
-                                                sigma=[i], shift=[shft])
-            gauss_vals = (shft, i)
-            yield pop, gauss_vals
-
-
-def iter_rand_pop_zipf(n_voters, n_candidates,
-                       zipf_params=arange(1.05, 3.05, .12)):
-    '''
-    This is an iterator that creates populations of voters using
-    gen_ranked_preferences_zipf with the distribution of rank ordering of
-    ballots following a truncated zipf distribution with each parameter from
-    zipf_params associated with each iterated population of voters.
-    '''
-    for zipf_param in zipf_params:  # Do for zipf sampled ballots
-        ballots = gen_ranked_preferences_zipf(n_candidates, n_voters,
-                                              zipf_param)
-        pop = svvamp.Population(preferences_rk=ballots)
-        yield pop, zipf_param
 
 
 def archive_old_sims(old_sim_subname, new_folder_name):
@@ -718,27 +374,27 @@ def archive_old_sims(old_sim_subname, new_folder_name):
 
 def main1():
     archive_old_sims('zipf_param=', 'Previous_sims')
-    # Simulate multi_lottery_borda and plot
+    # Simulate multi_lottery and plot
     for zipf_p in [1.1, 1.2, 1.4, 1.8, 2.5]:
         for n in range(3, 11):
-            votes = gen_ranked_preferences_zipf(n_candidates=n, n_voters=5000,
-                                                zipf_param=1.6)
+            votes = bg.gen_ranked_preferences_zipf(n_candidates=n,
+                                    n_voters=5000, zipf_param=1.6)
             # try with various zipf_param, n_candidates, and points to win
             p = array(votes, dtype=intc)
-            n_pref_by_rank, pref_ij = fast_gen_pref_summ(p)
-            w = get_weights_from_counts(n_pref_by_rank)
+            n_pref_by_rank, pref_ij = ls.fast_gen_pref_summ(p)
+            w = ls.get_weights_from_counts(n_pref_by_rank)
             plot_sim(votes, w, n_pref_by_rank, pref_ij, zipf_p,
                      test_point_cuttoffs=[1, 1.5, 2, 2.1, 3, 3.5, 8, 20],
                      method='borda')
 
 
 def main2():
-    get_happinesses_by_method(iter_rand_pop_polar, fast=True)
-    get_happinesses_by_method(iter_rand_pop_zipf, fast=True)
-    get_happinesses_by_method(iter_rand_pop_gauss, fast=True)
-    get_happinesses_by_method(iter_rand_pop_other, fast=True)
-    get_happinesses_by_method(iter_rand_pop_polar, fast=True)
-    get_happinesses_by_method(iter_rand_pop_ladder, fast=True)
+    get_happinesses_by_method(bg.iter_rand_pop_polar, fast=True)
+    get_happinesses_by_method(bg.iter_rand_pop_zipf, fast=True)
+    get_happinesses_by_method(bg.iter_rand_pop_gauss, fast=True)
+    get_happinesses_by_method(bg.iter_rand_pop_other, fast=True)
+    get_happinesses_by_method(bg.iter_rand_pop_polar, fast=True)
+    get_happinesses_by_method(bg.iter_rand_pop_ladder, fast=True)
 
 
 def test_sim():

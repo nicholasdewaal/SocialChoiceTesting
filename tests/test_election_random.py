@@ -8,6 +8,28 @@ from svvamp import PopulationSpheroid
 # to do: fix imports, create packages, __init__ files
 
 
+def gen_pref_summaries(pref_ballots):
+    '''
+    This function is used for testing code to always check it matches the
+    cython code version of use. Do not use except for testing.
+    This function is slow. Use the Cython implementation in pref_matrix
+    n_pref_by_rank: # voters who placed candidate (col idx) at rank (row idx)
+    n_pref_i_over_j: # voters preferring candidate row i to candidate col j
+    '''
+    N = len(pref_ballots[0])
+    n_pref_i_over_j = [N * [0] for _ in range(N)]
+    n_pref_by_rank = [N * [0] for _ in range(N)]
+
+    for pref_rank in pref_ballots:
+        for jj, ranked_val in enumerate(pref_rank):
+            n_pref_by_rank[jj][ranked_val] += 1
+            for c_less_pref in pref_rank[jj + 1:]:
+                n_pref_i_over_j[ranked_val][c_less_pref] += 1  # this line is
+                # half the cpu work
+
+    return n_pref_by_rank, n_pref_i_over_j
+
+
 def test_get_weights_from_counts():
     pref_ballots = [[1, 4, 3, 0, 2],
                     [4, 1, 0, 2, 3],
@@ -42,7 +64,7 @@ def test_gen_pref_summaries():
         pref_ballots = pop.preferences_rk.tolist()
         p = array(pref_ballots, dtype=intc)
         r1, r2 = c_gen_pref_summaries(p)
-        t1, t2 = er.gen_pref_summaries(pref_ballots)
+        t1, t2 = gen_pref_summaries(pref_ballots)
         assert (t1 == r1).all()
         assert (t2 == r2).all()
 
