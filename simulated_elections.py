@@ -380,8 +380,7 @@ def main1():
             votes = bg.gen_ranked_preferences_zipf(n_candidates=n,
                                     n_voters=5000, zipf_param=1.6)
             # try with various zipf_param, n_candidates, and points to win
-            p = array(votes, dtype=intc)
-            n_pref_by_rank, pref_ij = ls.fast_gen_pref_summ(p)
+            n_pref_by_rank, pref_ij = ls.fast_gen_pref_summ(votes)
             w = ls.get_weights_from_counts(n_pref_by_rank)
             plot_sim(votes, w, n_pref_by_rank, pref_ij, zipf_p,
                      test_point_cuttoffs=[1, 1.5, 2, 2.1, 3, 3.5, 8, 20],
@@ -393,7 +392,6 @@ def main2():
     get_happinesses_by_method(bg.iter_rand_pop_zipf, fast=True)
     get_happinesses_by_method(bg.iter_rand_pop_gauss, fast=True)
     get_happinesses_by_method(bg.iter_rand_pop_other, fast=True)
-    get_happinesses_by_method(bg.iter_rand_pop_polar, fast=True)
     get_happinesses_by_method(bg.iter_rand_pop_ladder, fast=True)
 
 
