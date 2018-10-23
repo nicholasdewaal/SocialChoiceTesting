@@ -153,6 +153,52 @@ def test_get_pairoff_winner():
     assert ls.get_pairoff_winner({0, 3}, pref_ij) == 3
 
 
+def test_random_ballot():
+    n_cand = 5
+    n_voters = 10000
+    rand_cnts = [0] * n_cand
+    counts = [0] * n_cand
+    pop = PopulationSpheroid(V=n_voters, C=n_cand)
+    p = pop.preferences_rk
+
+    for x in p:
+        counts[x[0]] += 1
+    pcts = [x / sum(counts) for x in counts]
+
+    for _ in range(1000000):
+        x = ls.random_ballot(p)
+        rand_cnts[x] += 1
+    r_pcts =  [x / sum(rand_cnts) for x in rand_cnts]
+
+    diff = sum([abs(r_pcts[ii] - pcts[ii]) for ii in range(len(r_pcts))])
+    assert diff < .005
+
+
+def test_gen_until_2_winners():
+    result = set((0, 1))
+    ballots = [[0,1,2,3,4],
+               [0,1,2,3,4],
+               [0,1,2,3,4],
+               [0,1,2,3,4],
+               [1,0,2,3,4],
+               [0,1,2,3,4],
+               [0,1,2,3,4],
+               [0,1,2,3,4],
+               [0,1,2,3,4],
+               [0,1,2,3,4],
+               [0,1,2,3,4],
+               [0,1,2,3,4],
+               [0,1,2,3,4],
+               [0,1,2,3,4],
+               [0,1,2,3,4],
+               [0,1,2,3,4]]
+    assert ls.gen_until_2_winners(ballots, 'borda') == result
+    assert ls.gen_until_2_winners(ballots, 'iterated_borda') == result
+    assert ls.gen_until_2_winners(ballots, 'iterated_borda_decay') == result
+    assert ls.gen_until_2_winners(ballots, 'borda_decay') == result
+    assert ls.gen_until_2_winners(ballots, 'plurality') == result
+
+
 def test_gen_until_2_winners_borda():
     # test that on numerous samples, not all the same result
     pass
