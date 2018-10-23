@@ -342,13 +342,13 @@ def get_happinesses_by_method(pop_iterator, fast=False):
     # utils_by_scf[pop_param][n_candidates][sim_number][scf]
     # now make dict of DataFrames by paramaters, n_candidates
     save_directory = dir_nm_prefix + pop_iterator.__name__
+    os.mkdir(save_directory)
     for param, v_upper in utils_by_scf.items():
         for n_cand, scf_by_sim_num in v_upper.items():
             dataframe_dict[param][n_cand] = DataFrame.from_dict(scf_by_sim_num,
                                                                 orient='index')
             dataframe_dict[param][n_cand].boxplot(rot=90)  # labels? by axis?
             plt.tight_layout()
-            os.mkdir(save_directory)
             plt.savefig(save_directory + '/plot_p=' + str(param) +
                         '_n_cand=' + str(n_cand) + '.png')
             plt.gcf().clear()
@@ -372,19 +372,19 @@ def archive_old_sims(old_sim_subname, new_folder_name):
                 num_attempts += 1
 
 
-def main1():
+def main1(method='borda'):
     archive_old_sims('zipf_param=', 'Previous_sims')
     # Simulate multi_lottery and plot
     for zipf_p in [1.1, 1.2, 1.4, 1.8, 2.5]:
         for n in range(3, 11):
             votes = bg.gen_ranked_preferences_zipf(n_candidates=n,
-                                    n_voters=5000, zipf_param=1.6)
+                                    n_voters=5000, zipf_param=zipf_p)
             # try with various zipf_param, n_candidates, and points to win
             n_pref_by_rank, pref_ij = ls.fast_gen_pref_summ(votes)
             w = ls.get_weights_from_counts(n_pref_by_rank)
             plot_sim(votes, w, n_pref_by_rank, pref_ij, zipf_p,
                      test_point_cuttoffs=[1, 1.5, 2, 2.1, 3, 3.5, 8, 20],
-                     method='borda')
+                     method=method)
 
 
 def main2():

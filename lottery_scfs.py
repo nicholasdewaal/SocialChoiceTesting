@@ -159,7 +159,6 @@ def multi_lottery(pref_ballots, points_to_win=2.3, borda_decay=.5,
     '''
     Returns (set of primary winners (2), finals winner)
     '''
-    # Attempt 2
     if (pref_ij is None):
         _, pref_ij = fast_gen_pref_summ(pref_ballots)
     win2_set = gen_until_2_winners(pref_ballots, method=method,
