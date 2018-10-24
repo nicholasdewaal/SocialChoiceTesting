@@ -338,11 +338,10 @@ def get_happinesses_by_method(pop_iterator, fast=False):
                 utils_by_scf[param][n_candidates][current_sim] = \
                     {k: utils[v] for k, v in winners_by_scf.items()}
         current_sim += 1
-    dir_nm_prefix = 'Population_type_sim='
-    archive_old_sims(dir_nm_prefix, 'Previous_sims_all_methods')
+    save_directory = 'Population_type_sim=' + pop_iterator.__name__
+    archive_old_sims(save_directory, 'Previous_sims_all_methods')
     # utils_by_scf[pop_param][n_candidates][sim_number][scf]
     # now make dict of DataFrames by paramaters, n_candidates
-    save_directory = dir_nm_prefix + pop_iterator.__name__
     os.mkdir(save_directory)
     for param, v_upper in utils_by_scf.items():
         for n_cand, scf_by_sim_num in v_upper.items():
