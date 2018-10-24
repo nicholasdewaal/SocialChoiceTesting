@@ -50,8 +50,9 @@ def social_util_by_cand(ranked_weights, fraction_happy_decay=.5):
     return happiness
 
 
-def simulate_multi_lottery(pref_ballots, weights, n_pref_by_rank, pref_ij,
-                           num_sim_per_cand=1000, n_pts_win=2, method='borda'):
+def simulate_multi_lottery(pref_ballots, social_happinesses, n_pref_by_rank,
+                           pref_ij, num_sim_per_cand=1000, n_pts_win=2,
+                           method='borda'):
     '''
     This simulates selecting the winner of a given election with voting
     ballots = pref_ballots using an improved variation on the random ballot
@@ -61,15 +62,13 @@ def simulate_multi_lottery(pref_ballots, weights, n_pref_by_rank, pref_ij,
     times.
     '''
 
-    # More simulations per candidate are helpful for more candidate weights
-    # to provide statistical accuracy.
     n_candidates = len(pref_ballots[0])
+    # More simulations per candidate helps to improve statistical accuracy.
     num_sim = num_sim_per_cand * n_candidates
     current_sim = 0
     num_primaries_won = {c: 0 for c in range(n_candidates)}
     num_finals_won =  {c: 0 for c in range(n_candidates)}
     happiness_freqs = list()
-    # return_tuple = namedtuple()
 
     while current_sim < num_sim:  # Do num_sim simulated elections
         # Handle simulated primary elections
@@ -88,14 +87,12 @@ def simulate_multi_lottery(pref_ballots, weights, n_pref_by_rank, pref_ij,
     freq_finals_won = {key: float(val) / num_sim for key, val in
                        num_finals_won.items()}
 
-    finals_social_happinesses = social_util_by_cand(weights)
-
     # In the following, happiness_freqs is a list of tuples of social happiness
     # occurring in the election simulation at a frequency corresponding to
     # the second element of each tuple: (happiness_measure, frequency in sim)
 
     final_winners = set(freq_finals_won.keys())
-    for candidate_key, happy_ms in finals_social_happinesses.items():
+    for candidate_key, happy_ms in social_happinesses.items():
         if candidate_key in final_winners:
             happiness_freqs.append((happy_ms, freq_finals_won[candidate_key]))
 
@@ -103,13 +100,17 @@ def simulate_multi_lottery(pref_ballots, weights, n_pref_by_rank, pref_ij,
     # in the simulation.
     avg_happiness = sum(h[0] * h[1] for h in happiness_freqs)
 
-    return freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness, \
-        finals_social_happinesses
+    return freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness
 
 
 def print_winnerpct_dict(in_dict):
     for x, y in in_dict.items():
         print('candidate ', x, ': ', round(100 * y, 1), '%')
+
+
+def mkdir_if_not_exist(dir_name):
+    if not os.path.exists(dir_name):
+        os.mkdir(dir_name)
 
 
 def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, zipf_p,
@@ -129,36 +130,35 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, zipf_p,
     '''
     ls.assert_weights_sound(weights)
     n_candidates = len(weights)
-
-    folder = 'zipf_param=' + str(zipf_p)
-
-    if not os.path.exists(folder):
-        os.mkdir(folder)
+    dir_name = 'zipf_param=' + str(zipf_p)
+    mkdir_if_not_exist(dir_name)
 
     fig, ax = plt.subplots()
     fig.patch.set_facecolor('xkcd:gray')
     ax.set_facecolor((0.38, 0.34, 0.22))
-    index = arange(n_candidates)
     bar_width = 0.75 / len(test_point_cuttoffs)
     opacity = 0.8
     colors = 'kbgrcmy'
     num_sim_per_cand = 1500
     freq_history = defaultdict(float)
 
+    social_happiness = social_util_by_cand(weights)
+    index = array(sorted(social_happiness, key=social_happiness.get,
+                         reverse=True), dtype=int)
+
     for j, pts in enumerate(test_point_cuttoffs):
 
-        freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness, h = \
-            simulate_multi_lottery(pref_ballots, weights, n_pref_by_rank,
-                                   pref_ij, num_sim_per_cand, n_pts_win=pts,
-                                   method=method)
-        index = array(sorted(h, key=h.get, reverse=True), dtype=int)
+        freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness = \
+            simulate_multi_lottery(pref_ballots, social_happiness,
+                                   n_pref_by_rank, pref_ij, num_sim_per_cand,
+                                   n_pts_win=pts, method=method)
         print('happiness order:', index)
-        print(h)
+        print(social_happiness)
         freq_history[pts] = [happiness_freqs, avg_happiness]
-        min_key = min(h, key=h.get)
-        min_val = round(100 * h[min_key], 1)
-        max_key = max(h, key=h.get)
-        max_val = round(100 * h[max_key], 1)
+        min_key = min(social_happiness, key=social_happiness.get)
+        min_val = round(100 * social_happiness[min_key], 1)
+        max_key = max(social_happiness, key=social_happiness.get)
+        max_val = round(100 * social_happiness[max_key], 1)
         print('\nFor', pts, 'points to win primary, avg_happiness =',
               round(100 * avg_happiness, 1), '%, zipf_param=', zipf_p)
         print('Worst social happiness is candidate %d =' % min_key, min_val, '%')
@@ -179,6 +179,7 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, zipf_p,
         plt.bar(index + j * bar_width, finals_freqs, bar_width,
                 alpha=opacity, color=colors[(j + 1) % len(colors)],
                 label=str(pts) + ' points')
+        set_trace()
 
     plt.xlabel('Candidate')
     plt.ylabel('% Winning Finals')
@@ -191,8 +192,9 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, zipf_p,
     plt.legend(loc='best', fontsize=5)
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.savefig(folder + '/Percent_of_time_win_primaries_' +
-                str(n_candidates) + '_candidates.png', dpi=250)
+    # plt.savefig(dir_name + '/Percent_of_time_win_primaries_' +
+                # str(n_candidates) + '_candidates.png', dpi=250)
+    plt.show()
 
     plt.gcf().clear()
 
@@ -217,11 +219,10 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, zipf_p,
         plt.tick_params(axis='both', which='minor', labelsize=5)
         plot_num += 1
 
-    # plt.show()
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.suptitle('Happiness (0-1) frequencies by point threshold.' +
                  ' Red is average happiness.')
-    plt.savefig(folder + '/Happiness_frequencies_final_winner_sim_' +
+    plt.savefig(dir_name + '/Happiness_frequencies_final_winner_sim_' +
                 str(n_candidates) + '_candidates.png', dpi=500)
 
 
@@ -372,9 +373,19 @@ def archive_old_sims(old_sim_subname, new_folder_name):
                 num_attempts += 1
 
 
+def sim_with_iterator(pop_iterator, n_voters, n_cand, method, point_cuttoffs):
+    for pop, param in bg.pop_iterator(n_voters, n_cand):
+        votes = pop.preferences_rk
+        n_pref_by_rank, pref_ij = ls.fast_gen_pref_summ(votes)
+        w = ls.get_weights_from_counts(n_pref_by_rank)
+        plot_sim(votes, w, n_pref_by_rank, pref_ij, 'NA-PARAM=' + str(param),
+                    test_point_cuttoffs=point_cuttoffs, method=method)
+
+
 def main1(method='borda'):
     archive_old_sims('zipf_param=', 'Previous_sims')
     # Simulate multi_lottery and plot
+    point_cuttoffs=[1, 1.5, 2, 2.1, 3, 3.5, 8, 20]
     for zipf_p in [1.1, 1.2, 1.4, 1.8, 2.5]:
         for n in range(3, 11):
             votes = bg.gen_ranked_preferences_zipf(n_candidates=n,
@@ -383,8 +394,15 @@ def main1(method='borda'):
             n_pref_by_rank, pref_ij = ls.fast_gen_pref_summ(votes)
             w = ls.get_weights_from_counts(n_pref_by_rank)
             plot_sim(votes, w, n_pref_by_rank, pref_ij, zipf_p,
-                     test_point_cuttoffs=[1, 1.5, 2, 2.1, 3, 3.5, 8, 20],
-                     method=method)
+                     test_point_cuttoffs=point_cuttoffs, method=method)
+
+    for n in range(3, 11):
+        sim_with_iterator(bg.iter_rand_pop_polar, n_voters=5000, n_cand=n,
+                        method=method, point_cuttoffs=test_point_cuttoffs)
+        sim_with_iterator(bg.iter_rand_pop_gauss, n_voters=5000, n_cand=n,
+                        method=method, point_cuttoffs=test_point_cuttoffs)
+        sim_with_iterator(bg.iter_rand_pop_ladder, n_voters=5000, n_cand=n,
+                        method=method, point_cuttoffs=test_point_cuttoffs)
 
 
 def main2():
@@ -409,5 +427,5 @@ def test_sim():
 
 if __name__ == "__main__":
     main1()
-    main2()
+    # main2()
     # test_sim()
