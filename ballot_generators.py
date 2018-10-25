@@ -95,7 +95,7 @@ def iter_rand_pop_gauss(n_voters, n_candidates, num_param=5):
 
 
 def iter_rand_pop_zipf(n_voters, n_candidates,
-                       zipf_params=arange(1.05, 3.05, .12)):
+                       zipf_params=arange(1.05, 3.25, .2)):
     '''
     This is an iterator that creates populations of voters using
     gen_ranked_preferences_zipf with the distribution of rank ordering of

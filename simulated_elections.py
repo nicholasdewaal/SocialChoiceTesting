@@ -23,7 +23,7 @@ def scale_utilities(in_utilities):  # not used?
     return sum(scaled_util) / len(scaled_util)
 
 
-def social_util_by_cand(ranked_weights, fraction_happy_decay=.5):
+def social_util_by_cand(ranked_weights, fraction_happy_decay=.25):
     '''
     Assume a multiplicative fractional utility decay for a voter
     by each drop in their preference ranking
@@ -143,7 +143,8 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, zipf_p,
     freq_history = defaultdict(float)
 
     social_happiness = social_util_by_cand(weights)
-    index = array(sorted(social_happiness, key=social_happiness.get,
+    index = array(range(n_candidates))
+    s_index = array(sorted(social_happiness, key=social_happiness.get,
                          reverse=True), dtype=int)
 
     for j, pts in enumerate(test_point_cuttoffs):
@@ -152,7 +153,7 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, zipf_p,
             simulate_multi_lottery(pref_ballots, social_happiness,
                                    n_pref_by_rank, pref_ij, num_sim_per_cand,
                                    n_pts_win=pts, method=method)
-        print('happiness order:', index)
+        print('happiness order:', s_index)
         print(social_happiness)
         freq_history[pts] = [happiness_freqs, avg_happiness]
         min_key = min(social_happiness, key=social_happiness.get)
@@ -167,19 +168,18 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, zipf_p,
         print('Final_winner percentages won in simulation: ')
         print_winnerpct_dict(freq_finals_won)
 
-        primary_freqs = [100 * freq_primry_won[ii] for ii in index]
-        finals_freqs = [100 * freq_finals_won[ii] for ii in index]
+        primary_freqs = [100 * freq_primry_won[ii] for ii in s_index]
+        finals_freqs = [100 * freq_finals_won[ii] for ii in s_index]
         plt.subplot(2, 1, 1)
         plt.bar(index + j * bar_width, primary_freqs, bar_width,
                 alpha=opacity, color=colors[(j + 1) % len(colors)])#,
                 # label=str(pts) + ' points')
-        plt.xticks(index + bar_width, [str(x) for x in range(n_candidates)])
+        plt.xticks(s_index + bar_width, [str(x) for x in range(n_candidates)])
         plt.ylabel('% Winning Primary\n(2 winners)')
         plt.subplot(2, 1, 2)
         plt.bar(index + j * bar_width, finals_freqs, bar_width,
                 alpha=opacity, color=colors[(j + 1) % len(colors)],
                 label=str(pts) + ' points')
-        set_trace()
 
     plt.xlabel('Candidate')
     plt.ylabel('% Winning Finals')
@@ -188,13 +188,12 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, zipf_p,
                  method + ' for each p points to win' + \
                  ' in order from most preferred to least.',
                  fontsize=6)
-    plt.xticks(index + bar_width, [str(x) for x in range(n_candidates)])
+    plt.xticks(s_index + bar_width, [str(x) for x in range(n_candidates)])
     plt.legend(loc='best', fontsize=5)
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    # plt.savefig(dir_name + '/Percent_of_time_win_primaries_' +
-                # str(n_candidates) + '_candidates.png', dpi=250)
-    plt.show()
+    plt.savefig(dir_name + '/Percent_of_time_win_primaries_' +
+                str(n_candidates) + '_candidates.png', dpi=250)
 
     plt.gcf().clear()
 
@@ -316,7 +315,7 @@ def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
 
 def get_happinesses_by_method(pop_iterator, fast=False):
 
-    num_sim, current_sim = 150, 0
+    num_sim, current_sim = 1500, 0
     utils_by_scf = Dict()
     dataframe_dict = Dict()
     test_num_candidates = [3, 4, 6, 9, 13, 18, 24]
@@ -373,35 +372,30 @@ def archive_old_sims(old_sim_subname, new_folder_name):
 
 
 def sim_with_iterator(pop_iterator, n_voters, n_cand, method, point_cuttoffs):
-    for pop, param in bg.pop_iterator(n_voters, n_cand):
+    for pop, param in pop_iterator(n_voters, n_cand):
         votes = pop.preferences_rk
         n_pref_by_rank, pref_ij = ls.fast_gen_pref_summ(votes)
         w = ls.get_weights_from_counts(n_pref_by_rank)
-        plot_sim(votes, w, n_pref_by_rank, pref_ij, 'NA-PARAM=' + str(param),
+        folder_suffix = 'param=' + str(param) + '_method=' + method
+        plot_sim(votes, w, n_pref_by_rank, pref_ij, folder_suffix,
                     test_point_cuttoffs=point_cuttoffs, method=method)
 
 
 def main1(method='borda'):
-    archive_old_sims('zipf_param=', 'Previous_sims')
+    archive_old_sims('method=', 'Previous_sims')
     # Simulate multi_lottery and plot
-    point_cuttoffs=[1, 1.5, 2, 2.1, 3, 3.5, 8, 20]
-    for zipf_p in [1.1, 1.2, 1.4, 1.8, 2.5]:
-        for n in range(3, 11):
-            votes = bg.gen_ranked_preferences_zipf(n_candidates=n,
-                                    n_voters=5000, zipf_param=zipf_p)
-            # try with various zipf_param, n_candidates, and points to win
-            n_pref_by_rank, pref_ij = ls.fast_gen_pref_summ(votes)
-            w = ls.get_weights_from_counts(n_pref_by_rank)
-            plot_sim(votes, w, n_pref_by_rank, pref_ij, zipf_p,
-                     test_point_cuttoffs=point_cuttoffs, method=method)
+    point_cuttoffs = [1, 1.5, 2, 2.1, 3, 3.5, 8, 20]
+    n_voters = 5000
 
     for n in range(3, 11):
-        sim_with_iterator(bg.iter_rand_pop_polar, n_voters=5000, n_cand=n,
-                        method=method, point_cuttoffs=test_point_cuttoffs)
-        sim_with_iterator(bg.iter_rand_pop_gauss, n_voters=5000, n_cand=n,
-                        method=method, point_cuttoffs=test_point_cuttoffs)
-        sim_with_iterator(bg.iter_rand_pop_ladder, n_voters=5000, n_cand=n,
-                        method=method, point_cuttoffs=test_point_cuttoffs)
+        sim_with_iterator(bg.iter_rand_pop_zipf, n_voters=n_voters, n_cand=n,
+                        method=method, point_cuttoffs=point_cuttoffs)
+        sim_with_iterator(bg.iter_rand_pop_polar, n_voters=n_voters, n_cand=n,
+                        method=method, point_cuttoffs=point_cuttoffs)
+        sim_with_iterator(bg.iter_rand_pop_gauss, n_voters=n_voters, n_cand=n,
+                        method=method, point_cuttoffs=point_cuttoffs)
+        sim_with_iterator(bg.iter_rand_pop_ladder, n_voters=n_voters, n_cand=n,
+                        method=method, point_cuttoffs=point_cuttoffs)
 
 
 def main2():
@@ -425,6 +419,10 @@ def test_sim():
 
 
 if __name__ == "__main__":
-    main1()
-    # main2()
+    main1('borda')
+    main1('borda_decay')
+    main1('iterated_borda')
+    main1('iterated_borda_decay')
+    main1('plurality')
+    main2()
     # test_sim()
