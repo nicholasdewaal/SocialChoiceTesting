@@ -91,14 +91,20 @@ def simulate_multi_lottery(pref_ballots, social_happinesses, n_pref_by_rank,
     # occurring in the election simulation at a frequency corresponding to
     # the second element of each tuple: (happiness_measure, frequency in sim)
 
-    final_winners = set(freq_finals_won.keys())
     for candidate_key, happy_ms in social_happinesses.items():
-        if candidate_key in final_winners:
-            happiness_freqs.append((happy_ms, freq_finals_won[candidate_key]))
+        happiness_freqs.append((happy_ms, freq_finals_won[candidate_key]))
 
     # The following is the average social happiness from the election results
     # in the simulation.
     avg_happiness = sum(h[0] * h[1] for h in happiness_freqs)
+
+    # If someone wins mostly from a loser category, debug to see what's going on.
+    p = n_candidates // 4  # Lowest quartile
+    lower_pctls = array(sorted(social_happinesses, key=social_happinesses.get),
+                        dtype=int)[:p]
+    if n_pts_win >= 2 and highest_winner in lower_pctls:
+        print('Why is lower pctl candidate winning so much! Debug!')
+        set_trace()
 
     return freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness
 
@@ -113,7 +119,7 @@ def mkdir_if_not_exist(dir_name):
         os.mkdir(dir_name)
 
 
-def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, zipf_p,
+def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, dir_name,
              test_point_cuttoffs=[1, 1.1, 1.9, 2, 2.2, 2.9, 3],
              method='borda'):
 
@@ -126,11 +132,10 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, zipf_p,
     multi_lottery method given point cutoffs of test_point_cuttoffs.
     Plots include distributions of happiness for multiple simulations of
     the same election, and frequencies of candidates surviving the primary
-    election. Plots are saved in the folder 'zipf_param={zipf_p}'.
+    election. Plots are saved in the folder dir_name.
     '''
     ls.assert_weights_sound(weights)
     n_candidates = len(weights)
-    dir_name = 'zipf_param=' + str(zipf_p)
     mkdir_if_not_exist(dir_name)
 
     fig, ax = plt.subplots()
@@ -161,7 +166,7 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, zipf_p,
         max_key = max(social_happiness, key=social_happiness.get)
         max_val = round(100 * social_happiness[max_key], 1)
         print('\nFor', pts, 'points to win primary, avg_happiness =',
-              round(100 * avg_happiness, 1), '%, zipf_param=', zipf_p)
+              round(100 * avg_happiness, 1), '%, ', dir_name)
         print('Worst social happiness is candidate %d =' % min_key, min_val, '%')
         print('Best social happiness is candidate %d =' % max_key, max_val, '%')
         # print("happiness_distr: ", happiness_freqs)
@@ -376,8 +381,9 @@ def sim_with_iterator(pop_iterator, n_voters, n_cand, method, point_cuttoffs):
         votes = pop.preferences_rk
         n_pref_by_rank, pref_ij = ls.fast_gen_pref_summ(votes)
         w = ls.get_weights_from_counts(n_pref_by_rank)
-        folder_suffix = 'param=' + str(param) + '_method=' + method
-        plot_sim(votes, w, n_pref_by_rank, pref_ij, folder_suffix,
+        folder_name = 'data_gen=' + pop_iterator.__name__ + '_param=' + \
+            str(param) + '_method=' + method
+        plot_sim(votes, w, n_pref_by_rank, pref_ij, folder_name,
                     test_point_cuttoffs=point_cuttoffs, method=method)
 
 
