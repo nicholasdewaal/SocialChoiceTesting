@@ -1,6 +1,6 @@
 # SocialChoiceTesting
 
-  Although the main purpose of this software is to test and analyse the results of various social-choice functions, it can also be used to run some hard-to find implementations of important social-choice functions such as:
+  Although the main purpose of this software is to test and analyse the results of various social-choice functions, it can also be used to run some hard-to-find implementations of important social-choice functions such as:
 
 Ballots must be complete rank-order ballots of candidates numbered 0-n as a list of lists, tuples of tuples, numpy array, or something similarly compatible.
   The random ballot:
@@ -8,8 +8,7 @@ Ballots must be complete rank-order ballots of candidates numbered 0-n as a list
   from lottery_scfs import random_ballot, multi_lottery
   from ballot_generators import gen_ranked_preferences_zipf
 
-  pref_ballots = gen_ranked_preferences_zipf(n_candidates=5, n_voters=5000,
-                                             zipf_param=1.5)
+  pref_ballots = gen_ranked_preferences_zipf(n_candidates=5, n_voters=5000, zipf_param=1.5)
   winner = random_ballot(pref_ballots)
   ```
   Various variations of multi-lottery style elections:
@@ -43,15 +42,19 @@ Ballots must be complete rank-order ballots of candidates numbered 0-n as a list
 
   All simulations assume results based upon completely sincere voting which is never true in theory except for the random ballot. Most social-choice functions are easier than others to manipulate: https://www.rangevoting.org/mani-focs.pdf
 
-  The purpose of this simulation is to compare social-choice functions with must better resistance to manipulation to more popular functions under ideal circumstances to consider how much potential loss comes from decreasing manipulability.
+  Although you can use the tools above, the main purpose of this software is simulation to compare social-choice functions with much better resistance to manipulation to more popular social-choice functions. This is done under ideal circumstances to consider how much potential loss comes from decreasing manipulability.
 
   You can run this simulation by navigating to the folder with the file election_random.py, and executing:
 
-  "python3 -O simulated_elections.py"
+  ```bash
+  python3 -O simulated_elections.py
+  ```
 
   If you want to save the text output from the simulation, run:
 
-  "python3 -O simulated_elections.py &>> summary.txt"
+  ```bash
+  python3 -O simulated_elections.py &>> summary.txt
+  ```
 
 The license for using this software is GPL v3 as written in the included file License.txt.
 
