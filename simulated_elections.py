@@ -56,7 +56,7 @@ def social_util_by_cand(ranked_weights, fraction_happy_decay=.25):
 
 def simulate_multi_lottery(pref_ballots, social_happinesses, n_pref_by_rank,
                            pref_ij, num_sim_per_cand=1000, n_pts_win=2,
-                           method='borda'):
+                           method='borda', recursive=True):
     '''
     This simulates selecting the winner of a given election with voting
     ballots = pref_ballots using an improved variation on the random ballot
@@ -76,8 +76,8 @@ def simulate_multi_lottery(pref_ballots, social_happinesses, n_pref_by_rank,
 
     while current_sim < num_sim:  # Do num_sim simulated elections
         # Handle simulated primary elections
-        primary_winners, finals_winner = ls.multi_lottery(pref_ballots, n_pts_win,
-                        borda_decay=.5, pref_ij=pref_ij,
+        primary_winners, finals_winner = ls.multi_lottery(pref_ballots,
+                        n_pts_win, borda_decay=.5, pref_ij=pref_ij,
                         n_pref_by_rank=n_pref_by_rank, method=method)
         for winner in primary_winners:
             num_primaries_won[winner] += 1
@@ -107,9 +107,18 @@ def simulate_multi_lottery(pref_ballots, social_happinesses, n_pref_by_rank,
     lower_pctls = array(sorted(social_happinesses, key=social_happinesses.get),
                         dtype=int)[:p]
     highest_winner = get_opt_dict_key(freq_finals_won, max)
-    if n_pts_win >= 2 and highest_winner in lower_pctls:
+    if n_pts_win >= 2 and highest_winner in lower_pctls and recursive:
         print('Why is lower pctl candidate winning so much! Debug!')
-        set_trace()
+        freq = simulate_multi_lottery(pref_ballots, social_happinesses,
+                    n_pref_by_rank, pref_ij, num_sim_per_cand,
+                    n_pts_win, method, False)[1]
+        with open('Weird_results.txt', 'a') as f:
+            f.write('\n\nFinal winner, points to win:', n_pts_win)
+            f.write('\nCand: Freq, Socl Happiness:\n')
+            for k, v in freq.items():
+                f.write('%d: %.4f,  %.4f\n' % (k, v, social_happinesses[k]))
+        print('Happiness', social_happinesses)
+        # set_trace()
 
     return freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness
 

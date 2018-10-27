@@ -32,7 +32,7 @@ Ballots must be complete rank-order ballots of candidates numbered 0-n as a list
   winner = hare_obj.woodall_hare()
   ```
 
-  This software simulates several prominent social-choice functions with numerous randomly-generated samples of different types of voting populations to learn which vote-tallying techniques statistically tend to have the best desired results for democratic processes. This software includes some of my ideas for new and hopefully better social-choice functions.
+  Although the methods above may be useful, this software is made more for use to simulate several prominent social-choice functions with numerous randomly-generated samples of different types of voting populations to learn which vote-tallying techniques statistically tend to have the best desired results for democratic processes. This software includes some of my ideas for new and hopefully better social-choice functions.
 
   The overall goal of this project is to find a social-choice function that better addresses constraints of election manipulability according to Gibbard's Theorem, and constraints from Arrow's Theorem. Another important consideration is the design of election systems that would maintain the stability and feasibility of governments, and maintain democracy in societies with highly polarized politics. Selecting a social-welfare function that optimizes social welfare relative to such constraints is the overall goal.
 
