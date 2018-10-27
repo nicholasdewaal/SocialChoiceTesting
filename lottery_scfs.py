@@ -22,9 +22,9 @@ def assert_weights_sound(weights):
 
 def tuplize(in_arr):
     '''
-    Convert numpy 2-D array to all tuples to allow for hashing in caching
+    Convert array to all tuples to allow for hashing in caching
     '''
-    return tuple(tuple(x) for x in in_arr.tolist())
+    return tuple(tuple(s for s in t) for t in in_arr)
 
 
 def fast_gen_pref_summ(pref_ballots):

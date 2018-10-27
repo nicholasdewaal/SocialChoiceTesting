@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from memory_profiler import profile
 from addict import Dict
 from numpy import arange, array, intc
 from collections import defaultdict
@@ -102,7 +103,7 @@ def simulate_multi_lottery(pref_ballots, social_happinesses, n_pref_by_rank,
     # in the simulation.
     avg_happiness = sum(h[0] * h[1] for h in happiness_freqs)
 
-    # If someone wins mostly from a loser category, debug to see what's going on.
+    # If someone wins mostly from a loser category, debug to see why.
     p = n_candidates // 4  # Lowest quartile
     lower_pctls = array(sorted(social_happinesses, key=social_happinesses.get),
                         dtype=int)[:p]
@@ -113,11 +114,10 @@ def simulate_multi_lottery(pref_ballots, social_happinesses, n_pref_by_rank,
                     n_pref_by_rank, pref_ij, num_sim_per_cand,
                     n_pts_win, method, False)[1]
         with open('Weird_results.txt', 'a') as f:
-            f.write('\n\nFinal winner, points to win:', n_pts_win)
+            f.write('\n\nFinal winner, points to win: ' + str(n_pts_win))
             f.write('\nCand: Freq, Socl Happiness:\n')
             for k, v in freq.items():
                 f.write('%d: %.4f,  %.4f\n' % (k, v, social_happinesses[k]))
-        print('Happiness', social_happinesses)
         # set_trace()
 
     return freq_primry_won, freq_finals_won, happiness_freqs, avg_happiness
@@ -420,6 +420,8 @@ def sim_single_elections(method='borda'):
                         method=method, point_cuttoffs=point_cuttoffs)
 
 
+fp=open('memory_profiler.log','w+')
+@profile(stream=fp)
 def main1():
     archive_old_sims('method=', 'Previous_sims')
     sim_single_elections('borda')
