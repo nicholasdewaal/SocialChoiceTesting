@@ -16,6 +16,10 @@ import os
 from shutil import move
 
 
+def get_opt_dict_key(in_dict, op=max):
+    return op(in_dict, key=in_dict.get)
+
+
 def scale_utilities(in_utilities):  # not used?
     scaled_util = [(x - min(x)) / (max(x) - min(x)) for x in in_utilities]
     # Scaled to get a percent total satisfaction of a population.
@@ -102,6 +106,7 @@ def simulate_multi_lottery(pref_ballots, social_happinesses, n_pref_by_rank,
     p = n_candidates // 4  # Lowest quartile
     lower_pctls = array(sorted(social_happinesses, key=social_happinesses.get),
                         dtype=int)[:p]
+    highest_winner = get_opt_dict_key(freq_finals_won, max)
     if n_pts_win >= 2 and highest_winner in lower_pctls:
         print('Why is lower pctl candidate winning so much! Debug!')
         set_trace()
@@ -120,7 +125,7 @@ def mkdir_if_not_exist(dir_name):
 
 
 def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, dir_name,
-             test_point_cuttoffs=[1, 1.1, 1.9, 2, 2.2, 2.9, 3],
+             parent_folder, test_point_cuttoffs=[1, 1.1, 1.9, 2, 2.2, 2.9, 3],
              method='borda'):
 
     '''
@@ -136,7 +141,8 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, dir_name,
     '''
     ls.assert_weights_sound(weights)
     n_candidates = len(weights)
-    mkdir_if_not_exist(dir_name)
+    dir_path = parent_folder + '/' + dir_name
+    mkdir_if_not_exist(dir_path)
 
     fig, ax = plt.subplots()
     fig.patch.set_facecolor('xkcd:gray')
@@ -161,9 +167,9 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, dir_name,
         print('happiness order:', s_index)
         print(social_happiness)
         freq_history[pts] = [happiness_freqs, avg_happiness]
-        min_key = min(social_happiness, key=social_happiness.get)
+        min_key = get_opt_dict_key(social_happiness, min)
         min_val = round(100 * social_happiness[min_key], 1)
-        max_key = max(social_happiness, key=social_happiness.get)
+        max_key = get_opt_dict_key(social_happiness, max)
         max_val = round(100 * social_happiness[max_key], 1)
         print('\nFor', pts, 'points to win primary, avg_happiness =',
               round(100 * avg_happiness, 1), '%, ', dir_name)
@@ -197,7 +203,7 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, dir_name,
     plt.legend(loc='best', fontsize=5)
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.savefig(dir_name + '/Percent_of_time_win_primaries_' +
+    plt.savefig(dir_path + '/Percent_of_time_win_primaries_' +
                 str(n_candidates) + '_candidates.png', dpi=250)
 
     plt.gcf().clear()
@@ -226,7 +232,7 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, dir_name,
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.suptitle('Happiness (0-1) frequencies by point threshold.' +
                  ' Red is average happiness.')
-    plt.savefig(dir_name + '/Happiness_frequencies_final_winner_sim_' +
+    plt.savefig(dir_path + '/Happiness_frequencies_final_winner_sim_' +
                 str(n_candidates) + '_candidates.png', dpi=500)
 
 
@@ -377,18 +383,19 @@ def archive_old_sims(old_sim_subname, new_folder_name):
 
 
 def sim_with_iterator(pop_iterator, n_voters, n_cand, method, point_cuttoffs):
+    parent_folder =  'method=' + method
+    mkdir_if_not_exist(parent_folder)
     for pop, param in pop_iterator(n_voters, n_cand):
         votes = pop.preferences_rk
         n_pref_by_rank, pref_ij = ls.fast_gen_pref_summ(votes)
         w = ls.get_weights_from_counts(n_pref_by_rank)
         folder_name = 'data_gen=' + pop_iterator.__name__ + '_param=' + \
-            str(param) + '_method=' + method
-        plot_sim(votes, w, n_pref_by_rank, pref_ij, folder_name,
+            str(param)
+        plot_sim(votes, w, n_pref_by_rank, pref_ij, folder_name, parent_folder,
                     test_point_cuttoffs=point_cuttoffs, method=method)
 
 
-def main1(method='borda'):
-    archive_old_sims('method=', 'Previous_sims')
+def sim_single_elections(method='borda'):
     # Simulate multi_lottery and plot
     point_cuttoffs = [1, 1.5, 2, 2.1, 3, 3.5, 8, 20]
     n_voters = 5000
@@ -402,6 +409,15 @@ def main1(method='borda'):
                         method=method, point_cuttoffs=point_cuttoffs)
         sim_with_iterator(bg.iter_rand_pop_ladder, n_voters=n_voters, n_cand=n,
                         method=method, point_cuttoffs=point_cuttoffs)
+
+
+def main1():
+    archive_old_sims('method=', 'Previous_sims')
+    sim_single_elections('borda')
+    sim_single_elections('borda_decay')
+    sim_single_elections('iterated_borda')
+    sim_single_elections('iterated_borda_decay')
+    sim_single_elections('plurality')
 
 
 def main2():
@@ -425,10 +441,6 @@ def test_sim():
 
 
 if __name__ == "__main__":
-    main1('borda')
-    main1('borda_decay')
-    main1('iterated_borda')
-    main1('iterated_borda_decay')
-    main1('plurality')
+    main1()
     main2()
     # test_sim()

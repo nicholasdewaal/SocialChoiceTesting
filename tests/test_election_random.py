@@ -111,7 +111,7 @@ def test_social_util_by_cand():
     ranked_weights = [[1.0, 0.0, 0.0],
                       [0.0, 0.5, 0.5],
                       [0.0, 0.5, 0.5]]
-    u = se.social_util_by_cand(ranked_weights)
+    u = se.social_util_by_cand(ranked_weights, .5)
     assert u == {0: 1.0, 1: 0.375, 2: 0.375}
     u = se.social_util_by_cand(ranked_weights, .999999999)
     for v in u.values():
