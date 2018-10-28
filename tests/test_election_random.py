@@ -5,7 +5,7 @@ import simulated_elections as se
 import ballot_generators as bg
 import lottery_scfs as ls
 import pytest
-from numpy import array, intc
+from numpy import array, intc, asarray
 from svvamp import PopulationSpheroid
 # to do: fix imports, create packages, __init__ files
 
@@ -67,6 +67,8 @@ def test_gen_pref_summaries():
         p = array(pref_ballots, dtype=intc)
         r1, r2 = c_gen_pref_summaries(p)
         t1, t2 = gen_pref_summaries(pref_ballots)
+        t1 = asarray(t1)
+        t2 = asarray(t2)
         assert (t1 == r1).all()
         assert (t2 == r2).all()
 

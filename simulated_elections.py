@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from memory_profiler import profile
 from addict import Dict
 from numpy import arange, array, intc
 from collections import defaultdict
@@ -154,8 +153,8 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, dir_name,
     mkdir_if_not_exist(dir_path)
 
     fig, ax = plt.subplots()
-    fig.patch.set_facecolor('xkcd:gray')
-    ax.set_facecolor((0.38, 0.34, 0.22))
+    # fig.patch.set_facecolor('xkcd:gray')
+    # ax.set_facecolor((0.38, 0.34, 0.22))
     bar_width = 0.75 / len(test_point_cuttoffs)
     opacity = 0.8
     colors = 'kbgrcmy'
@@ -213,7 +212,7 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, dir_name,
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.savefig(dir_path + '/Percent_of_time_win_primaries_' +
-                str(n_candidates) + '_candidates.png', dpi=250)
+                str(n_candidates) + '_candidates.png', dpi=220)
 
     plt.gcf().clear()
 
@@ -242,7 +241,10 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, dir_name,
     plt.suptitle('Happiness (0-1) frequencies by point threshold.' +
                  ' Red is average happiness.')
     plt.savefig(dir_path + '/Happiness_frequencies_final_winner_sim_' +
-                str(n_candidates) + '_candidates.png', dpi=500)
+                str(n_candidates) + '_candidates.png', dpi=220)
+
+    fig.clf()
+    plt.close()
 
 
 def simulate_all_elections(pop_object, fast=False, pref_i_to_j=None,
@@ -370,7 +372,7 @@ def get_happinesses_by_method(pop_iterator, fast=False):
             plt.tight_layout()
             plt.savefig(save_directory + '/plot_p=' + str(param) +
                         '_n_cand=' + str(n_cand) + '.png')
-            plt.gcf().clear()
+            plt.close()
 
 
 def archive_old_sims(old_sim_subname, new_folder_name):
@@ -391,6 +393,8 @@ def archive_old_sims(old_sim_subname, new_folder_name):
                 num_attempts += 1
 
 
+# fp=open('memory_profiler.log','w+')
+# @profile(stream=fp)
 def sim_with_iterator(pop_iterator, n_voters, n_cand, method, point_cuttoffs):
     parent_folder =  'method=' + method
     mkdir_if_not_exist(parent_folder)
@@ -420,8 +424,6 @@ def sim_single_elections(method='borda'):
                         method=method, point_cuttoffs=point_cuttoffs)
 
 
-fp=open('memory_profiler.log','w+')
-@profile(stream=fp)
 def main1():
     archive_old_sims('method=', 'Previous_sims')
     sim_single_elections('borda')
