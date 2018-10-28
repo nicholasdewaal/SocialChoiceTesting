@@ -44,7 +44,7 @@ Ballots must be complete rank-order ballots of candidates numbered 0-n as a list
 
   Although you can use the tools above, the main purpose of this software is simulation to compare social-choice functions with much better resistance to manipulation to more popular social-choice functions. This is done under ideal circumstances to consider how much potential loss comes from decreasing manipulability.
 
-  You can run this simulation by navigating to the folder with the file election_random.py, and executing:
+  You can run this simulation by navigating to the folder with the simulated_elections.py, and executing:
 
   ```bash
   python3 -O simulated_elections.py
