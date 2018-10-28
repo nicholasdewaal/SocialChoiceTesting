@@ -210,7 +210,7 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, dir_name,
     plt.xticks(s_index + bar_width, [str(x) for x in range(n_candidates)])
     plt.legend(loc='best', fontsize=5)
 
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    # plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.savefig(dir_path + '/Percent_of_time_win_primaries_' +
                 str(n_candidates) + '_candidates.png', dpi=220)
 

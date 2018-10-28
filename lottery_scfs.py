@@ -1,4 +1,4 @@
-from numpy import cumsum, array, intc
+from numpy import cumsum, array, intc, random
 from random import uniform, randint
 from collections import defaultdict
 from ipdb import set_trace
@@ -94,40 +94,51 @@ def gen_until_2_winners(pref_ballots, method='borda', borda_decay=.5,
     n_cand = len(pref_ballots[0])
     iter_num = 0
     decay_rate = borda_decay ** (2 / (n_cand - 1))
+    rand_max = len(pref_ballots) - 1
+    pool_size = int(2 * n_cand ** 1.4 * points_to_win)
+    set_length = 0
 
-    while len(win_set) < 2:
-        chosen_ballot = pref_ballots[randint(0, len(pref_ballots) - 1)]
-        i = iter_num % n_cand
-        iter_num += 1
+    if method == 'borda_decay' or method == 'iterated_borda_decay':
+        point_legend = [decay_rate ** ii for ii in range(n_cand)]
+    elif method != 'plurality':
+        # 1st choice gets 1 point scaled down to 0 for the last
+        point_legend = [(n_cand - ii - 1) / (n_cand - 1) for ii in range(n_cand)]
 
-        if method == 'plurality':
-            won_pts[chosen_ballot[0]] += 1
+    while set_length < 2:
+        idx = iter_num % pool_size
+        if idx == 0: # much faster than randint
+            random_int_pool = random.randint(rand_max, size=pool_size)
+        # chosen_ballot = pref_ballots[randint(0, rand_max)]
+        chosen_ballot = pref_ballots[random_int_pool[idx]]
 
         # Iterate between ballots choosing 1st choice on the 1st randomly
         # chosen ballot, the 2nd choice on the 2nd randomly chosen ballot, etc.
         # until cycling back to the 1st choice assigning points according to
         # borda count based on ballot rank.
-        elif method == 'iterated_borda':
-            won_pts[chosen_ballot[i]] += (n_cand - i - 1) / (n_cand - 1)
+        if method == 'borda' or method == 'borda_decay':
+            for ii, x in enumerate(chosen_ballot):
+                won_pts[x] += point_legend[ii]
+                if won_pts[x] >= points_to_win:
+                    win_set.add(x)
+        else:
+            if method != 'plurality':
+            # then it must be iterated_borda_decay or iterated_borda
+                i = iter_num % n_cand
+                winner = chosen_ballot[i]
+                won_pts[winner] += point_legend[i]
+            else: # definitely plurality
+                winner = chosen_ballot[0]
+                won_pts[winner] += 1
 
-        elif method == 'iterated_borda_decay':
-            won_pts[chosen_ballot[i]] += decay_rate ** i
+            if won_pts[winner] >= points_to_win:
+                win_set.add(winner)
 
-        for ii, x in enumerate(chosen_ballot):
-            if method == 'borda':
-                # 1st choice gets 1 point scaled down to 0 for the last
-                won_pts[x] += (n_cand - ii - 1) / (n_cand - 1)
 
-            if method == 'borda_decay':
-                won_pts[x] += decay_rate ** ii
-
-            if won_pts[x] >= points_to_win:
-                win_set.add(x)
-
-        win_set = {x for x, v in won_pts.items() if v >= points_to_win}
-        if len(win_set) > 2:
+        set_length = len(win_set)
+        if set_length > 2:
             win_set = set(sorted(won_pts, key=won_pts.get)[:2])
             # Two winners with the most points that pass points_to_win
+        iter_num += 1
 
     return win_set
 
