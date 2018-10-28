@@ -35,7 +35,8 @@ def fast_gen_pref_summ(pref_ballots):
     p = array(pref_ballots, dtype=intc)
     n_pref_rk, n_pref_ij = c_gen_pref_summaries(p)
     # must return a tuple to be hashable for caching
-    return tuplize(n_pref_rk), tuplize(n_pref_ij)
+    # return tuplize(n_pref_rk), tuplize(n_pref_ij)
+    return n_pref_rk, n_pref_ij
 
 
 def gen_until_2_winners(pref_ballots, method='borda', borda_decay=.5,
@@ -103,6 +104,7 @@ def gen_until_2_winners(pref_ballots, method='borda', borda_decay=.5,
     elif method != 'plurality':
         # 1st choice gets 1 point scaled down to 0 for the last
         point_legend = [(n_cand - ii - 1) / (n_cand - 1) for ii in range(n_cand)]
+    borda = True if method == 'borda' or method == 'borda_decay' else False
 
     while set_length < 2:
         idx = iter_num % pool_size
@@ -115,7 +117,7 @@ def gen_until_2_winners(pref_ballots, method='borda', borda_decay=.5,
         # chosen ballot, the 2nd choice on the 2nd randomly chosen ballot, etc.
         # until cycling back to the 1st choice assigning points according to
         # borda count based on ballot rank.
-        if method == 'borda' or method == 'borda_decay':
+        if borda:
             for ii, x in enumerate(chosen_ballot):
                 won_pts[x] += point_legend[ii]
                 if won_pts[x] >= points_to_win:

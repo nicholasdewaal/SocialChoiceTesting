@@ -212,7 +212,7 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, dir_name,
 
     # plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.savefig(dir_path + '/Percent_of_time_win_primaries_' +
-                str(n_candidates) + '_candidates.png', dpi=220)
+                str(n_candidates) + '_candidates.png', dpi=200)
 
     plt.gcf().clear()
 
@@ -241,7 +241,7 @@ def plot_sim(pref_ballots, weights, n_pref_by_rank, pref_ij, dir_name,
     plt.suptitle('Happiness (0-1) frequencies by point threshold.' +
                  ' Red is average happiness.')
     plt.savefig(dir_path + '/Happiness_frequencies_final_winner_sim_' +
-                str(n_candidates) + '_candidates.png', dpi=220)
+                str(n_candidates) + '_candidates.png', dpi=200)
 
     fig.clf()
     plt.close()
