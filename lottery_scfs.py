@@ -98,6 +98,7 @@ def gen_until_2_winners(pref_ballots, method='borda', borda_decay=.5,
     rand_max = len(pref_ballots) - 1
     pool_size = int(2 * n_cand ** 1.4 * points_to_win)
     set_length = 0
+    max_iter = min(rand_max, 50 * n_cand * points_to_win)
 
     if method == 'borda_decay' or method == 'iterated_borda_decay':
         point_legend = [decay_rate ** ii for ii in range(n_cand)]
@@ -129,7 +130,10 @@ def gen_until_2_winners(pref_ballots, method='borda', borda_decay=.5,
                 winner = chosen_ballot[i]
                 won_pts[winner] += point_legend[i]
             else: # definitely plurality
-                winner = chosen_ballot[0]
+                if iter_num > max_iter:
+                    winner = chosen_ballot[1]
+                else:
+                    winner = chosen_ballot[0]
                 won_pts[winner] += 1
 
             if won_pts[winner] >= points_to_win:
@@ -141,6 +145,9 @@ def gen_until_2_winners(pref_ballots, method='borda', borda_decay=.5,
             win_set = set(sorted(won_pts, key=won_pts.get)[:2])
             # Two winners with the most points that pass points_to_win
         iter_num += 1
+
+    if iter_num > max_iter:
+        print('hit max iter!')
 
     return win_set
 
