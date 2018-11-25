@@ -56,5 +56,9 @@ Ballots must be complete rank-order ballots of candidates numbered 0-n as a list
   python3 -O simulated_elections.py &>> summary.txt
   ```
 
+  The box and whisker plots from the simulations plots the social happiness results from numerous simulations of election results using a variety of popular social-choice functions, and variations of multi-lottery social-choice functions with different points-to-win parameters. Each box and whisker plot corresponds to a given number of candidates, and a given simulated type of voting populace with the associated parameters. This information is in the folder name and file name of each plot.
+
+  The bar plots are for analysing multi-lottery methods only. They provide happiness frequency results from numerous simulations on the same population, and winner frequencies on the same population. This is repeated for a variety of population types, and number of candidates, each with their corresponding plots.
+
 The license for using this software is GPL v3 as written in the included file License.txt.
 

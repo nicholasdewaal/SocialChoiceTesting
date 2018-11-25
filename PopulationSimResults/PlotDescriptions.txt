@@ -1,0 +1,2 @@
+
+The box and whisker plots from the simulations plots the social happiness results from numerous simulations of election results using a variety of popular social-choice functions, and variations of multi-lottery social-choice functions with different points-to-win parameters. Each box and whisker plot corresponds to a given number of candidates, and a given simulated type of voting populace with the associated parameters. This information is in the folder name and file name of each plot.

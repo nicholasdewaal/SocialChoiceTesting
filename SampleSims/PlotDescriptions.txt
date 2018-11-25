@@ -1,0 +1,2 @@
+
+ The bar plots are for analysing multi-lottery methods only. They provide happiness frequency results from numerous simulations on the same population, and winner frequencies on the same population. This is repeated for a variety of population types, and number of candidates, each with their corresponding plots.
