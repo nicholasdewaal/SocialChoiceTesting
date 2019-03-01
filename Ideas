@@ -1,0 +1,31 @@
+
+I propose the following social-choice procedure for selecting candidates or mechanisms as close to ideal.
+
+It would be useful to have decentralized, collaborative, and inclusive law making, much like what is done with VTaiwan. 
+https://info.vtaiwan.tw/
+
+I propose that we allow many people to fork and branch proposals for law, software forks, policies within communities or companies, 
+or anywhere else group decision-making takes place. Then to run elections to select one of the proposed forks.
+
+Mechanism definition: A process, law, source code, or other data
+
+I propose the following method of selection for a mechanism change, or candidate:
+
+    1. Set a time period for any member to register to run for election (either a candidate or mechanism change) 
+    
+    2. For mechanism changes, allow time for collaboration, debate, proposals, and refinement of mechanisms.
+    
+    3. For mechanisms, freeze all proposals to allow time for voters to analyze, debate, and decide their votes.
+       For candidates, set a time period for debate and campaigning.
+       
+    4. Begin the primaries by polling voters using approval or range voting. The top 5 candidates selected will 
+       move on to the finals.
+       
+    5. Begin the final election using Multi-Lottery Borda or other variation on the remaining 5 candidates.
+       This is done by using ranked-choice voting, then selecting the top 2 winners using a variation of multi-lottery. 
+       Then use plurality for the remaining 2 candidates using those same cast ballots.
+       
+    Approval voting followed by multi-lottery is done, because having more than 5 candidates for multi-lottery is dangerous 
+    since poor results of final selection has a high risk. Multi-lottery is done in order to avoid the worst of the 
+    Gibbard-Satterthwaite theorem, and of Arrow's Theorem. The Random ballot overcomes both of the limitations of those theorems,
+    but at the great cost of a random dictator, whereas multi-lottery makes a good compromise.
