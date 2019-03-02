@@ -11,6 +11,11 @@ Mechanism definition: A process, law, source code, or other data
 
 I propose the following method of selection for a mechanism change, or candidate:
 
+    For mechanisms, set an agenda for mechamisms to add, update or modify during a given time period by allowing
+    each voter to vote on mechanisms they would prefer to add, update, or modify using approval voting. The top 
+    items selected in approval voting that fit into the agenda are set into the agenda. Then for each mechanism or
+    candidate on the agenda, do the following:
+
     1. Set a time period for any member to register to run for election (either a candidate or mechanism change) 
     
     2. For mechanism changes, allow time for collaboration, debate, proposals, and refinement of mechanisms.
