@@ -1,8 +1,11 @@
 # SocialChoiceTesting
 
-  Although the main purpose of this software is to test and analyse the results of various social-choice functions, it can also be used to run some hard-to-find implementations of important social-choice functions.
+The main purpose of this software is to test and analyse the results of various social-choice functions.
 
 Ballots must be complete rank-order ballots of candidates numbered 0-n as a list of lists, tuples of tuples, numpy array, or something similarly compatible.
+
+This software can also be used to run some hard-to-find implementations of important social-choice functions such as:
+
   The random ballot:
   ```python
   from lottery_scfs import random_ballot, multi_lottery
