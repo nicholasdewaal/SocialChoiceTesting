@@ -3,6 +3,6 @@ addict==2.1.1
 matplotlib==2.1.0
 pandas==0.20.3
 svvamp==0.0.4
-scipy==0.19.1
+scipy==1.10.0
 Cython==0.27.1
 tarjan==0.2.3.2
